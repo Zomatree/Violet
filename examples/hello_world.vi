@@ -1,0 +1,7 @@
+import { stdout } from io;
+let const x = 5;
+
+fun main(argv: List[String]): Void {
+	let hello: String = "Hello, world!\n";
+	stdout.write(hello);
+}
