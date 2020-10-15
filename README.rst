@@ -16,4 +16,4 @@ Sample "Hello World" example:
 
 Other examples can be found in the `examples/` directory.
 
-Clone the repo, and use `python -m violet <file>` to invoke the interpreter.
+Clone the repo, and use ``python -m violet <file>`` to invoke the interpreter.
