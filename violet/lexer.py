@@ -1,3 +1,4 @@
+import sys
 from sly import Lexer
 
 class VioletLexer(Lexer):
@@ -23,6 +24,10 @@ class VioletLexer(Lexer):
 		SCOPE,
 		CONST,
 		FUN,
+		RETURN,
+		TRUE,
+		FALSE,
+		NIL,
 
 		IDENTIFIER,
 		NUMBER,
@@ -45,13 +50,18 @@ class VioletLexer(Lexer):
 	BRACK_OPEN = r'\['
 	BRACK_CLOSE = r'\]'
 
-	IMPORT = 'import'
-	FROM = 'from'
-	SCOPE = r'(let|put)'
-	CONST = 'const'
-	FUN = 'fun'
-
 	IDENTIFIER = r'[a-zA-Z_]+'
+	IDENTIFIER['import'] = IMPORT
+	IDENTIFIER['from'] = FROM
+	IDENTIFIER['let'] = SCOPE
+	IDENTIFIER['put'] = SCOPE
+	IDENTIFIER['const'] = CONST
+	IDENTIFIER['fun'] = FUN
+	IDENTIFIER['return'] = RETURN
+	IDENTIFIER['true'] = TRUE
+	IDENTIFIER['false'] = FALSE
+	IDENTIFIER['nil'] = NIL
+
 	NUMBER = r'[0-9]+'
 	STRING = r'".*?(?<!\\)(?:\\\\)*?"'
 
@@ -62,7 +72,7 @@ class VioletLexer(Lexer):
 		self.lineno += t.value.count('\n')
 
 	def error(self, t):
-		print(f"Illegal character {t.value[0]!r}")
-		self.index += 1
+		print(f"ERROR:{self.lineno}: Illegal character {t.value[0]!r}")
+		sys.exit(1)
 
 lexer = VioletLexer()

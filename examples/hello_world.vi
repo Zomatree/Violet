@@ -1,7 +1,7 @@
-import { stdout } from io;
-let const x = 5;
+import { io } from std;
 
-fun main(argv: List[String]): Void {
-	let hello: String = "Hello, world!\n";
-	stdout.write(hello);
-}
+fun main(argv: List[String]) {
+	let a = io.out.write("Hello, world!\n");
+	io.out.write(String.new(a));
+	return nil;
+};
