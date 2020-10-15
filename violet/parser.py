@@ -18,10 +18,12 @@ class VioletParser(Parser):
 		super().__init__(*args, **kwargs)
 		self._error_list = []
 
-	debugfile = None # 'parsetab.out'
+	# debugfile = 'parsetab.out'
 	tokens = VioletLexer.tokens
 
 	precedence = (
+		('nonassoc', EQ, NE, GT, GE, LT, LE),
+		('left', MODULUS),
 		('left', DIVIDE, MULTIPLY),
 		('left', PLUS, MINUS),
 	)
@@ -43,21 +45,22 @@ class VioletParser(Parser):
 	# @_("func_call EOS")
 	@_("func EOS")
 	@_("return_stmt EOS")
+	@_("control")
 	def stmt(self, p):
 		# print("STATEMENT")
-		return getanyattr(p, 'expr', 'iport', 'assign', 'func_call', 'func', 'return_stmt', 'newline')
+		return getanyattr(p, 'expr', 'iport', 'assign', 'func_call', 'func', 'return_stmt', 'newline', 'control')
 
 	@_("SCOPE name EQUALS expr")
 	@_("SCOPE CONST name EQUALS expr")
 	def assign(self, p):
-		stmt = ast.AssignmentStatement(p.SCOPE, getanyattr(p, 'CONST'), p.name, None, p.expr)
+		stmt = ast.Assignment(p.SCOPE, getanyattr(p, 'CONST'), p.name, None, p.expr)
 		# print(stmt)
 		return stmt
 
 	@_("SCOPE name COLON typ EQUALS expr")
 	@_("SCOPE CONST name COLON typ EQUALS expr")
 	def assign(self, p):
-		stmt = ast.AssignmentStatement(p.SCOPE, getanyattr(p, 'CONST'), p.name, p.typ, p.expr)
+		stmt = ast.Assignment(p.SCOPE, getanyattr(p, 'CONST'), p.name, p.typ, p.expr)
 		# print(stmt)
 		return stmt
 
@@ -90,9 +93,42 @@ class VioletParser(Parser):
 	def expr(self, p):
 		return ast.BiOperatorExpr(p.expr0, ast.Divide(), p.expr1)
 
+	@_("expr MODULUS expr")
+	def expr(self, p):
+		return ast.BiOperatorExpr(p.expr0, ast.Modulus(), p.expr1)
+
 	@_("identity")
 	def expr(self, p):
 		return p.identity
+
+	@_("bool")
+	def expr(self, p):
+		return p.bool
+
+	@_("expr EQ expr")
+	def bool(self, p):
+		# print(*p)
+		return ast.BiOperatorExpr(p.expr0, ast.EqualTo(), p.expr1)
+
+	@_("expr NE expr")
+	def bool(self, p):
+		return ast.BiOperatorExpr(p.expr0, ast.NotEqualTo(), p.expr1)
+
+	@_("expr GT expr")
+	def bool(self, p):
+		return ast.BiOperatorExpr(p.expr0, ast.GreaterThan(), p.expr1)
+
+	@_("expr GE expr")
+	def bool(self, p):
+		return ast.BiOperatorExpr(p.expr0, ast.GreaterOrEqual(), p.expr1)
+
+	@_("expr LT expr")
+	def bool(self, p):
+		return ast.BiOperatorExpr(p.expr0, ast.LessThan(), p.expr1)
+
+	@_("expr LE expr")
+	def bool(self, p):
+		return ast.BiOperatorExpr(p.expr0, ast.LessOrEqual(), p.expr1)
 	"""
 	@_("identity ATTR IDENTIFIER")
 	@_("IDENTIFIER")
@@ -120,9 +156,9 @@ class VioletParser(Parser):
 	def expr(self, p):
 		return p.primitive
 
-	@_('NUMBER')
+	@_('DECIMAL')
 	def primitive(self, p):
-		prim = ast.Primitive(p.NUMBER, type=objects.Integer)
+		prim = ast.Primitive(p.DECIMAL, type=objects.Integer)
 		# print(prim)
 		return prim
 
@@ -237,6 +273,28 @@ class VioletParser(Parser):
 	@_("RETURN")
 	def return_stmt(self, p):
 		return ast.Return(getanyattr(p, 'expr'))
+
+	# control flow
+
+	@_("if_stmt")
+	@_("if_stmt elseif_stmt")
+	@_("if_stmt elseif_stmt else_stmt")
+	@_("if_stmt else_stmt")
+	def control(self, p):
+		mapping = {k: getattr(p, k) for k in p._namemap.keys()}
+		return ast.IfControl(**mapping)
+
+	@_("IF PAREN_OPEN expr PAREN_CLOSE block")
+	def if_stmt(self, p):
+		return ast.If(p.expr, p.block)
+
+	@_("ELSEIF PAREN_OPEN expr PAREN_CLOSE block")
+	def elseif_stmt(self, p):
+		return ast.ElseIf(p.expr, p.block)
+
+	@_("ELSE block")
+	def else_stmt(self, p):
+		return ast.Else(p.block)
 
 	def error(self, t):
 		if not t:

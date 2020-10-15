@@ -8,7 +8,14 @@ _OPS = {
 	'minus': '-',
 	'times': '*',
 	'divide': '/',
-	'call': '()'
+	'modulus': '%',
+	'call': '()',
+	'equals': '==',
+	'not_equals': '!=',
+	'greater': '>',
+	'greater_equal': '>=',
+	'less': '<',
+	'less_equal': '<='
 }
 
 class _Meta(type):
@@ -19,6 +26,7 @@ class _Meta(type):
 			if name.startswith('_operator_'):
 				new.pop(name)
 				op = name[10:]
+				# print(name)
 				name = 'operator' + _OPS[op]
 				new[name] = value
 		return super().__new__(mcs, cname, bases, new)
@@ -32,7 +40,8 @@ class Object(metaclass=_Meta):
 		return self.get_special_method('+')(other)
 
 	def get_special_method(self, name):
-		meth = getattr(self, 'operator'+name)
+		# print(name)
+		meth = getattr(self, 'operator'+name, None)
 		if meth is None:
 			raise OperatorNotApplicable(self, name)
 		if not inspect.ismethod(meth):
@@ -41,6 +50,24 @@ class Object(metaclass=_Meta):
 
 	def __call__(self, args, *, runner):
 		return self.get_special_method('()')(args, runner=runner)
+
+	def __eq__(self, other):
+		return self.get_special_method('==')(other)
+
+	def __ne__(self, other):
+		return self.get_special_method('!=')(other)
+
+	def __gt__(self, other):
+		return self.get_special_method('>')(other)
+
+	def __ge__(self, other):
+		return self.get_special_method('>=')(other)
+
+	def __lt__(self, other):
+		return self.get_special_method('<')(other)
+
+	def __le__(self, other):
+		return self.get_special_method('<=')(other)
 
 class ThinPythonObjectWrapper:
 	def __init__(self, obj):
@@ -77,6 +104,9 @@ class Primitive(Object):
 	def __init__(self, value):
 		self.value0 = value
 
+	def __repr__(self):
+		return f'{self.__class__.__name__}({self.value0})'
+
 	def get_type(self):
 		from violet.vast import TypeId, Identifier
 		return TypeId(Identifier(self.__class__.__name__))
@@ -87,6 +117,24 @@ class Primitive(Object):
 		if not isinstance(other, self.__class__):
 			raise Exception(f"operator+ not allowed between classes of '{self.__class__.__qualname__}' and '{other.__class__.__name__}'")
 		return self.__class__(self.value0 + other.value0)
+
+	def _operator_equals(self, other):
+		return Boolean(self.value0 == other.value0)
+
+	def _operator_not_equals(self, other):
+		return Boolean(self.value0 != other.value0)
+
+	def _operator_greater(self, other):
+		return Boolean(self.value0 > other.value0)
+
+	def _operator_greater_equal(self, other):
+		return Boolean(self.value0 >= other.value0)
+
+	def _operator_less(self, other):
+		return Boolean(self.value0 < other.value0)
+
+	def _operator_less_equal(self, other):
+		return Boolean(self.value0 <= other.value0)
 
 class Void(Primitive):
 	def __init__(self):
@@ -100,19 +148,25 @@ class Void(Primitive):
 		return TypeId(Identifier('Void'))
 
 class Boolean(Primitive):
-	pass
+	def __bool__(self):
+		return self.value0
+
+	def __repr__(self):
+		return repr(self.value0).lower()
 
 class String(Primitive):
 	@classmethod
-	def new(cls, value):
-		return cls(str(value))
+	def new(cls, value, *, runner):
+		if len(value) > 1:
+			raise Exception("too many arguments for function call (expected 1 argument)")
+		return cls(str(value[0]))
 
 class Integer(Primitive):
 	pass
 
 class List(Primitive):
 	@classmethod
-	def from_value0(cls, value, runner):
+	def from_value0(cls, value, *, runner):
 		if not value:  # empty expr list?
 			raise Exception("cannot infer type of empty list")
 		initial = value[0].eval(runner).__class__
@@ -124,11 +178,11 @@ class List(Primitive):
 			values.append(arg)
 		return cls(values)
 
-class _Break(Exception):
-	pass
-
 class Function(Object):
 	# _attrs = ('name', 'params', 'return_type', 'body')
+
+	def __repr__(self):
+		return f"Function<{self.name}>()"
 
 	def __init__(self, name, params, return_type, body):
 		from violet.vast import Return, Primitive
@@ -138,19 +192,25 @@ class Function(Object):
 		self.return_type = return_type
 		self.body = body
 		self._return = None
+		self._return_flag = False
 
 		if body:
 			if not isinstance(body[-1], Return):
 				body.append(Return(Primitive('nil', Void)))
 
+	def reset_state(self):
+		ret = self._return
+		self._return = None
+		self._return_flag = None
+		return ret
+
 	def _operator_call(self, args, *, runner):
-		# print(self.params, args)
+		# print(self)
 		with runner.new_scope():
 			if len(args) < len(self.params):
 				raise Exception("not enough arguments for function call")
 			params = iter(self.params)
-			for arg in args:
-				value = arg.eval(runner)
+			for value in args:
 				try:
 					param = next(params)
 				except StopIteration:
@@ -158,50 +218,6 @@ class Function(Object):
 				param.type.type_check(value, runner)
 				
 				runner.get_current_scope().set_var(param.name, value)
-			self._execute(runner)
+			runner.exec_function_body(self.body, self)
 			# print("returning type", self._return)
-			return self._return
-	
-	def _execute(self, runner):
-		for statement in self.body:
-			runner.lineno += 1
-			# print("executing", statement.__class__.__name__)
-			try:
-				self._execute_statement(statement, runner)
-			except _Break:
-				break
-			except Exception as e:
-				print(f"ERROR:{runner.lineno}: {e}")
-
-	def _execute_statement(self, statement, runner):
-		from violet import vast as ast
-
-		if isinstance(statement, ast.Assignment):
-			scope = runner.global_scope if statement.global_scope else runner.get_current_scope()
-			expr = statement.expression.eval(runner)
-			typ = statement.type
-
-			if typ is not None:
-				typ.type_check(expr, runner)
-
-			scope.set_var(statement.identifier, expr, const=statement.constant)
-
-		elif isinstance(statement, ast.Return):
-			expr = statement.expr
-			if expr is None:
-				ret = Void()
-			else:
-				ret = expr.eval(runner)
-			if self.return_type is None:
-				if not isinstance(ret, Object):
-					ret = runner.wrap_py_type(ret)
-				self.return_type = ret.get_type()
-			self.return_type.type_check(ret, runner)
-			self._return = ret
-			raise _Break
-
-		elif isinstance(statement, ast.FunctionCall):
-			statement.eval(runner)
-
-		else:
-			raise Exception(f"unexpected {statement.__class__.__name__!r} statement")
+			return self.reset_state()

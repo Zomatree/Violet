@@ -42,7 +42,7 @@ class Primitive(VioletASTBase):
 		elif self.type is objects.String:
 			return self.type(pyast.literal_eval(self.value))
 		elif self.type is objects.List:
-			return self.type.from_value0(self.value, runner)
+			return self.type.from_value0(self.value, runner=runner)
 		else:
 			raise Exception(self.type)
 
@@ -163,14 +163,14 @@ class FunctionCall(VioletASTBase):
 			except AttributeError:
 				raise HasNoAttribute(obj, attr)
 
-		args = []
-		for arg in self.args:
-			args.append(arg.eval(runner))
+		args = self.args
+		# print(obj, args)
 
 		if isinstance(obj, PyMethodType):
-			value = obj(*[o.value0 for o in args])
+			value = obj(*[o.eval(runner).value0 for o in args])
 		else:
-			value = obj(*args)
+			value = obj([o.eval(runner) for o in args], runner=runner)
+		# print(value)
 		return value
 
 class Return(VioletASTBase):
@@ -179,26 +179,119 @@ class Return(VioletASTBase):
 	def __init__(self, expr):
 		self.expr = expr or objects.Void()
 
+class Control(VioletASTBase):
+	def eval(self, runner, func):
+		pass
+
+class IfControl(Control):
+	__slots__ = 'if_stmt', 'elseif_stmt', 'else_stmt'
+
+	def __init__(self, if_stmt, elseif_stmt=None, else_stmt=None):
+		self.if_stmt = if_stmt
+		self.elseif_stmt = elseif_stmt
+		self.else_stmt = else_stmt
+
+	def eval(self, runner, func):
+		can = self.if_stmt.eval(runner, func)
+		# print("IF ->", can)
+		if not can and self.elseif_stmt:
+			can = self.elseif_stmt.eval(runner, func)
+			# print("ELSEIF ->", can)
+		if not can and self.else_stmt:
+			self.else_stmt.eval(runner, func)
+			# print("ELSE")
+
+class ForControl(Control):
+	pass  # todo
+
+class WhileControl(Control):
+	pass  # todo
+
+class LoopControl(Control):
+	pass  # todo
+
+class SwitchControl(Control):
+	pass  # todo
+
+class If(Control):
+	__slots__ = 'expr', 'body'
+
+	def __init__(self, expr, body):
+		self.expr = expr
+		self.body = body
+
+	def eval(self, runner, func):
+		expr = self.expr.eval(runner)
+		# print(self.__class__.__name__, "->", self.expr)
+		if not isinstance(expr, objects.Boolean):
+			raise TypeCheckerFailed(expr, objects.Boolean)
+		if expr:
+			with runner.new_scope():
+				runner.exec_function_body(self.body, func)
+		return expr
+
+class ElseIf(Control):
+	__slots__ = 'expr', 'body'
+
+	def __init__(self, expr, body):
+		self.expr = expr
+		self.body = body
+
+	def eval(self, runner, func):
+		return If.eval(self, runner, func)
+
+class Else(Control):
+	__slots__ = 'body',
+
+	def __init__(self, body):
+		self.body = body
+
+	def eval(self, runner, func):
+		with runner.new_scope():
+			runner.exec_function_body(self.body, func)
+
 class Operator:
 	__slots__ = ()
 
 	def __repr__(self):
 		return '{0.__class__.__name__}()'.format(self)
 
-	def __eq__(self, other):
-		return isinstance(other, self.__class__) and self.char == other.char
+# math
 
 class Plus(Operator):
-	char = '+'
+	pass
 
 class Minus(Operator):
-	char = '-'
+	pass
 
 class Times(Operator):
-	char = '*'
+	pass
 
 class Divide(Operator):
-	char = '/'
+	pass
+
+class Modulus(Operator):
+	pass
+
+# equality
+
+class EqualTo(Operator):
+	pass
+
+class NotEqualTo(Operator):
+	pass
+
+class GreaterThan(Operator):
+	pass
+
+class GreaterOrEqual(Operator):
+	pass
+
+class LessThan(Operator):
+	pass
+
+class LessOrEqual(Operator):
+	pass
 
 class BiOperatorExpr(VioletASTBase):
 	__slots__ = ('left', 'op', 'right')
@@ -208,15 +301,43 @@ class BiOperatorExpr(VioletASTBase):
 		self.op = op
 		self.right = right
 
+	def _Plus(self, l, r):
+		return l + r
+
+	def _Minus(self, l, r):
+		return l - r
+
+	def _Times(self, l, r):
+		return l * r
+
+	def _Divide(self, l, r):
+		return l / r
+
+	def _Modulus(self, l, r):
+		return l % r
+
+	def _EqualTo(self, l, r):
+		return l == r
+
+	def _NotEqualTo(self, l, r):
+		return l != r
+
+	def _GreaterThan(self, l , r):
+		return l > r
+
+	def _GreaterOrEqual(self, l, r):
+		return l >= r
+
+	def _LessThan(self, l, r):
+		return l < r
+
+	def _LessOrEqual(self, l, r):
+		return l <= r
+
 	def eval(self, runner):
 		left = runner.get_var(self.left) if isinstance(self.left, Identifier) else self.left.eval(runner)
 		right = runner.get_var(self.right) if isinstance(self.right, Identifier) else self.right.eval(runner)
+		# print(left, self.op, right)
 
-		if self.op == Plus():
-			return left + right
-		if self.op == Minus():
-			return left - right
-		if self.op == Times():
-			return left * right
-		if self.op == Divide():
-			return left / right
+		return getattr(self, '_' + self.op.__class__.__name__)(left, right)
+		# print(ret)

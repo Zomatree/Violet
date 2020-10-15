@@ -1,7 +1,5 @@
 import { io } from std;
 
 fun main(argv: List[String]) {
-	let a = io.out.write("Hello, world!\n");
-	io.out.write(String.new(a));
-	return nil;
+	io.out.write("Hello, world!\n");
 };

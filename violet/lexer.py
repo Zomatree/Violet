@@ -7,30 +7,50 @@ class VioletLexer(Lexer):
 		MINUS,
 		MULTIPLY,
 		DIVIDE,
+		MODULUS,
+
+		EQ,
+		NE,
+		GE,
+		GT,
+		LE,
+		LT,
+
 		EOS,
 		EQUALS,
 		COLON,
+		# DQMARK,
+		# QMARK,
+
 		BLOCK_OPEN,
 		BLOCK_CLOSE,
 		PAREN_OPEN,
 		PAREN_CLOSE,
-		ATTR,
-		COMMA,
 		BRACK_OPEN,
 		BRACK_CLOSE,
 
+		ATTR,
+		COMMA,
+
+		IDENTIFIER,
+
+		SCOPE,
+
 		IMPORT,
 		FROM,
-		SCOPE,
 		CONST,
 		FUN,
 		RETURN,
+
 		TRUE,
 		FALSE,
 		NIL,
 
-		IDENTIFIER,
-		NUMBER,
+		IF,
+		ELSEIF,
+		ELSE,
+
+		DECIMAL,
 		STRING,
 	}
 
@@ -38,31 +58,54 @@ class VioletLexer(Lexer):
 	MINUS = r'-'
 	MULTIPLY = r'\*'
 	DIVIDE = r'/'
+	MODULUS = '%'
+
+	EQ = '=='
+	NE = '!='
+	GE = '>='
+	GT = '>'
+	LE = '<='
+	LT = '<'
+
 	EOS = ';'
 	EQUALS = '='
 	COLON = ':'
+	# DQMARK = r'\?\?'
+	# QMARK = r'\?'
+
 	BLOCK_OPEN = '{'
 	BLOCK_CLOSE = '}'
 	PAREN_OPEN = r'\('
 	PAREN_CLOSE = r'\)'
-	ATTR = r'\.'
-	COMMA = ','
 	BRACK_OPEN = r'\['
 	BRACK_CLOSE = r'\]'
 
+	ATTR = r'\.'
+	COMMA = ','
+
 	IDENTIFIER = r'[a-zA-Z_]+'
-	IDENTIFIER['import'] = IMPORT
-	IDENTIFIER['from'] = FROM
+
 	IDENTIFIER['let'] = SCOPE
 	IDENTIFIER['put'] = SCOPE
+
+	IDENTIFIER['import'] = IMPORT
+	IDENTIFIER['from'] = FROM
 	IDENTIFIER['const'] = CONST
 	IDENTIFIER['fun'] = FUN
 	IDENTIFIER['return'] = RETURN
+
 	IDENTIFIER['true'] = TRUE
 	IDENTIFIER['false'] = FALSE
 	IDENTIFIER['nil'] = NIL
 
-	NUMBER = r'[0-9]+'
+	IDENTIFIER['if'] = IF
+	IDENTIFIER['elseif'] = ELSEIF
+	IDENTIFIER['else'] = ELSE
+
+	# BINARY = r'0b[01]+'
+	DECIMAL = r'[0-9]+'
+	# HEXADECIMAL = r'0x[0-9a-fA-F]+'
+
 	STRING = r'".*?(?<!\\)(?:\\\\)*?"'
 
 	ignore = ' \t'
@@ -73,6 +116,7 @@ class VioletLexer(Lexer):
 
 	def error(self, t):
 		print(f"ERROR:{self.lineno}: Illegal character {t.value[0]!r}")
+		# self.errok()
 		sys.exit(1)
 
 lexer = VioletLexer()

@@ -12,6 +12,10 @@ class HasNoAttribute(BaseError, Exception):
 	def __init__(self, obj, name):
 		super().__init__(f"{obj.__name__!r} has no attribute {name!r}")
 
+class TypeCheckerFailed(BaseError, Exception):
+	def __init__(self, unexpected, expected):
+		super().__init__(f"unexpected type {unexpected.__class__.__name__!r} (expected {expected.__name__!r})")
+
 class ModuleDoesNotExist(BaseError):
 	def __init__(self, name):
 		super().__init__(f'module {name!r} does not exist')

@@ -19,7 +19,8 @@ _STD_TYPES = {
 	'List': objects.List,
 	'String': objects.String,
 	'Void': objects.Void,
-	'Integer': objects.Integer
+	'Integer': objects.Integer,
+	'Boolean': objects.Boolean
 }
 
 _PY_TYPES = {
@@ -29,6 +30,11 @@ _PY_TYPES = {
 	list: objects.List.from_value0
 }
 
+_print = print
+def print(*args, **kwargs):
+	kwargs['file'] = kwargs.get('file', sys.stderr)
+	_print(*args, **kwargs)
+
 class VarNotFound(Exception):
 	def __init__(self, var):
 		super().__init__(f"variable {var.name!r} is not defined")
@@ -36,9 +42,6 @@ class VarNotFound(Exception):
 class CannotReassignConst(Exception):
 	def __init__(self, var):
 		super().__init__(f"constant variable {var.name!r} cannot be reassigned")
-
-class TypeCheckerFailed(Exception):
-	pass
 
 class Scope:
 	def __init__(self):
@@ -59,11 +62,14 @@ class Scope:
 		return self.get_var(ast.Identifier(name))
 
 	def get_var(self, identifier):
+		# print(self.hash, ": getting", identifier)
 		try:
 			if identifier.name in _STD_TYPES:
 				return _STD_TYPES[identifier.name]
-			var = self.vars.get(identifier) or self.const_vars.get(identifier)
-			if not var:
+			var = self.vars.get(identifier)
+			if var is None:
+				var = self.const_vars.get(identifier)
+			if var is None:
 				raise VarNotFound(identifier)
 			return var
 		except VarNotFound:
@@ -76,10 +82,11 @@ class Scope:
 			raise CannotReassignConst(identifier)  # cannot reassign consts
 		orig = self.vars[identifier]
 		if not orig.type_check(value):
-			raise TypeCheckerFailed(value)
+			raise errors.TypeCheckerFailed(value, orig.__class__)
 		self.vars[identifier] = value
 
 	def set_var(self, identifier, value, *, const=False):
+		# print(self.hash, ": assigning", identifier, value)
 		if not isinstance(value, objects.Object):
 			value = objects.ThinPythonObjectWrapper(value)
 		# print("assigning", identifier, "to", value, "as const?", const)
@@ -104,7 +111,7 @@ class Runner:
 
 	@staticmethod
 	def wrap_py_type(value):
-		return _PY_TYPES[type(value)](value)
+		return _PY_TYPES[type(value)](value, runner=self)
 
 	def get_var(self, *args, **kwargs):
 		return self.get_current_scope().get_var(*args, **kwargs)
@@ -127,33 +134,33 @@ class Runner:
 			sys.exit(1)
 
 		module.body.extend(body)
-		# print(module)
+		# print(module, file=sys.stdout)
 		try:
 			# print(module.body)
 			self.exec_module(module)
 		except errors.Panic as e:
-			print("FATAL: system error occured:", e)
+			print("FATAL: system error occured:", e, file=sys.stderr)
 			sys.exit(9)
 		# print(self.get_current_scope())
 		# pprint.pprint(self.scopes)
 		# return self
-		print(module)
+		# print(module, file=sys.stdout)
 		try:
 			main = self.get_current_scope().get_var(ast.Identifier('main'))
 		except VarNotFound:
-			print("ERROR: missing entry point function 'main'")
+			print("ERROR: missing entry point function 'main'", file=sys.stderr)
 			sys.exit(1)
 
 		argv = ast.Primitive([
 			ast.Primitive('"a"', type=objects.String),
 			# ast.Primitive('1', type=objects.Integer)
-		], type=objects.List)
+		], type=objects.List).eval(self)
 
 		try:
 			main([argv], runner=self)
 		except Exception as e:
 			# raise e
-			print(f"ERROR:{self.lineno}", e)
+			print(f"ERROR:{self.lineno}", e, file=sys.stderr)
 			sys.exit(1)
 
 		# pprint.pprint(self.scopes)
@@ -164,23 +171,52 @@ class Runner:
 		scope.parent = self.get_current_scope()
 		self.scopes[scope.hash] = scope
 		old_scope = self.active_scope
+		# print("opening scope", scope.hash, "with parent", old_scope)
 		self.active_scope = scope.hash
 		try:
 			yield
 		finally:
+			# print("closing scope", scope.hash, "to", old_scope)
 			self.active_scope = old_scope
 
-	def exec_module(self, module):
-		for statement in module.body:
+	def exec_module_body(self, stmt_list):
+		for statement in stmt_list:
 			self.lineno += 1
 			# print("executing", statement)
 
-			self.exec_statement(statement)
+			if isinstance(statement, ast.Import):
+				self._exec_import(statement)
+			elif isinstance(statement, ast.Assignment):
+				self._exec_assignment(statement)
+			elif isinstance(statement, ast.Function):
+				self._exec_function_spawn(statement)
+			else:
+				print(f"ERROR:{self.lineno}: unexpected {statement.__class__.__name__!r} statement", file=sys.stderr)
 
 			for error in self.runtime_errors:
-				pass
-				print(f"ERROR:{self.lineno}: {error}")
+				print(f"ERROR:{self.lineno}: {error}", file=sys.stderr)
 			self.runtime_errors.clear()
+
+	def exec_function_body(self, body, func):
+		for statement in body:
+			if func._return_flag:
+				break
+			self.lineno += 1
+			# print("executing", statement.__class__.__name__)
+			if isinstance(statement, ast.Assignment):
+				self._exec_assignment(statement)
+			elif isinstance(statement, ast.Return):
+				self._exec_return(statement, func)
+				func._return_flag = True
+			elif isinstance(statement, ast.FunctionCall):
+				statement.eval(self)
+			elif isinstance(statement, ast.Control):
+				statement.eval(self, func)
+			else:
+				print(f"ERROR:{self.lineno}: unexpected {statement.__class__.__name__!r} statement", file=sys.stderr)
+
+	def exec_module(self, module):
+		self.exec_module_body(module.body)
 
 	def _exec_import(self, stmt):
 		form = stmt.from_module
@@ -229,29 +265,37 @@ class Runner:
 			else:
 				self.get_current_scope().set_var(name, var)
 
-	def _exec_assignment(self, stmt):
-		# print(stmt)
-		if stmt.global_scope:
-			scope = self.global_scope
-		else:
-			scope = self.get_current_scope()
-		# print(f"assigning {stmt.identifier!r} to {stmt.expression!r}")
+	def _exec_assignment(self, statement):
+		# print(statement)
+		scope = self.global_scope if statement.global_scope else self.get_current_scope()
+		expr = statement.expression.eval(self)
+		# print(expr)
+		typ = statement.type
+
+		if typ is not None:
+			typ.type_check(expr, self)
+
 		try:
-			scope.set_var(stmt.identifier, stmt.expression.eval(self), const=stmt.constant)
+			scope.set_var(statement.identifier, expr, const=statement.constant)
 		except Exception as e:
+			# raise e
 			self.runtime_errors.append(str(e))
+
+	def _exec_return(self, statement, func):
+		# print(statement)
+		expr = statement.expr
+		if expr is None:
+			ret = Void()
+		else:
+			ret = expr.eval(self)
+		if func.return_type is None:
+			if not isinstance(ret, objects.Object):
+				ret = self.wrap_py_type(ret)
+			func.return_type = ret.get_type()
+		func.return_type.type_check(ret, self)
+		func._return = ret
 
 	def _exec_function_spawn(self, stmt):
 		# print("spawn function")
 		self.get_current_scope().set_var(stmt.name, objects.Function(stmt.name, stmt.params, stmt.ret_value, stmt.body))
-
-	def exec_statement(self, statement):
-		if isinstance(statement, ast.Import):
-			self._exec_import(statement)
-		elif isinstance(statement, ast.Assignment):
-			self._exec_assignment(statement)
-		elif isinstance(statement, ast.Function):
-			self._exec_function_spawn(statement)
-		else:
-			print(f"ERROR:{self.lineno}: unexpected {statement.__class__.__name__!r} statement")
 	

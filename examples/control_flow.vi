@@ -1,0 +1,22 @@
+import { io } from std;
+
+fun test(i: Integer, j: Integer): Boolean {
+	return i <= j;
+};
+
+fun main(argv: List[String]) {
+	let x = "if?\n";
+	io.out.write(x);
+	if (test(1, 1)) {
+		let y = "IF!\n";
+		io.out.write(y);
+	}
+	elseif (test(1, 2)) {
+		let y = "ELSEIF!\n";
+		io.out.write(y);
+	}
+	else {
+		let y = "ELSE!\n";
+		io.out.write(y);
+	}
+};
