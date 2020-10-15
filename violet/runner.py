@@ -22,6 +22,13 @@ _STD_TYPES = {
 	'Integer': objects.Integer
 }
 
+_PY_TYPES = {
+	int: objects.Integer,
+	str: objects.String,
+	type(None): objects.Void,
+	list: objects.List.from_value0
+}
+
 class VarNotFound(Exception):
 	def __init__(self, var):
 		super().__init__(f"variable {var.name!r} is not defined")
@@ -95,6 +102,10 @@ class Runner:
 		self.runtime_errors = []
 		self.lineno = 0
 
+	@staticmethod
+	def wrap_py_type(value):
+		return _PY_TYPES[type(value)](value)
+
 	def get_var(self, *args, **kwargs):
 		return self.get_current_scope().get_var(*args, **kwargs)
 
@@ -126,7 +137,7 @@ class Runner:
 		# print(self.get_current_scope())
 		# pprint.pprint(self.scopes)
 		# return self
-		# print(module)
+		print(module)
 		try:
 			main = self.get_current_scope().get_var(ast.Identifier('main'))
 		except VarNotFound:
@@ -235,9 +246,9 @@ class Runner:
 		self.get_current_scope().set_var(stmt.name, objects.Function(stmt.name, stmt.params, stmt.ret_value, stmt.body))
 
 	def exec_statement(self, statement):
-		if isinstance(statement, ast.ImportStatement):
+		if isinstance(statement, ast.Import):
 			self._exec_import(statement)
-		elif isinstance(statement, ast.AssignmentStatement):
+		elif isinstance(statement, ast.Assignment):
 			self._exec_assignment(statement)
 		elif isinstance(statement, ast.Function):
 			self._exec_function_spawn(statement)

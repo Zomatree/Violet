@@ -109,14 +109,14 @@ class TypeId(VioletASTBase):
 			if not isinstance(value, typ):
 				raise Exception(f"invalid type {value.__class__.__name__!r} for function call (expected {typ.__name__!r})")
 
-class ImportStatement(VioletASTBase):
+class Import(VioletASTBase):
 	__slots__ = ('importing', 'from_module')
 
 	def __init__(self, importing, from_module):
 		self.importing = importing
 		self.from_module = from_module
 		
-class AssignmentStatement(VioletASTBase):
+class Assignment(VioletASTBase):
 	__slots__ = ('global_scope', 'constant', 'identifier', 'type', 'expression')
 
 	def __init__(self, scope, constant, identifier, type, expression):
@@ -173,7 +173,7 @@ class FunctionCall(VioletASTBase):
 			value = obj(*args)
 		return value
 
-class ReturnStatement(VioletASTBase):
+class Return(VioletASTBase):
 	__slots__ = 'expr',
 
 	def __init__(self, expr):

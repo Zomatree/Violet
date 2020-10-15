@@ -131,11 +131,17 @@ class Function(Object):
 	# _attrs = ('name', 'params', 'return_type', 'body')
 
 	def __init__(self, name, params, return_type, body):
+		from violet.vast import Return, Primitive
+
 		self.name = name
 		self.params = params
 		self.return_type = return_type
 		self.body = body
 		self._return = None
+
+		if body:
+			if not isinstance(body[-1], Return):
+				body.append(Return(Primitive('nil', Void)))
 
 	def _operator_call(self, args, *, runner):
 		# print(self.params, args)
@@ -170,23 +176,25 @@ class Function(Object):
 	def _execute_statement(self, statement, runner):
 		from violet import vast as ast
 
-		if isinstance(statement, ast.AssignmentStatement):
+		if isinstance(statement, ast.Assignment):
 			scope = runner.global_scope if statement.global_scope else runner.get_current_scope()
 			expr = statement.expression.eval(runner)
-			type = statement.type
+			typ = statement.type
 
-			if type is not None:
-				type.type_check(expr, runner)
+			if typ is not None:
+				typ.type_check(expr, runner)
 
 			scope.set_var(statement.identifier, expr, const=statement.constant)
 
-		elif isinstance(statement, ast.ReturnStatement):
+		elif isinstance(statement, ast.Return):
 			expr = statement.expr
 			if expr is None:
 				ret = Void()
 			else:
 				ret = expr.eval(runner)
 			if self.return_type is None:
+				if not isinstance(ret, Object):
+					ret = runner.wrap_py_type(ret)
 				self.return_type = ret.get_type()
 			self.return_type.type_check(ret, runner)
 			self._return = ret

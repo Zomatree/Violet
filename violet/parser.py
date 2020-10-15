@@ -171,7 +171,7 @@ class VioletParser(Parser):
 
 	@_("IMPORT BLOCK_OPEN name_list BLOCK_CLOSE FROM identity")
 	def iport(self, p):
-		imp = ast.ImportStatement(p.name_list, from_module=p.identity)
+		imp = ast.Import(p.name_list, from_module=p.identity)
 		# print(imp)
 		return imp
 
@@ -236,7 +236,7 @@ class VioletParser(Parser):
 	@_("RETURN expr")
 	@_("RETURN")
 	def return_stmt(self, p):
-		return ast.ReturnStatement(getanyattr(p, 'expr'))
+		return ast.Return(getanyattr(p, 'expr'))
 
 	def error(self, t):
 		if not t:
