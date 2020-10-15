@@ -242,5 +242,5 @@ class Runner:
 		elif isinstance(statement, ast.Function):
 			self._exec_function_spawn(statement)
 		else:
-			print(f"ERROR:{self.lineno}: unexpected statement {statement!r}")
+			print(f"ERROR:{self.lineno}: unexpected {statement.__class__.__name__!r} statement")
 	

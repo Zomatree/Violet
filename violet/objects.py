@@ -196,4 +196,4 @@ class Function(Object):
 			statement.eval(runner)
 
 		else:
-			raise Exception(f"unexpected statement {statement!r}")
+			raise Exception(f"unexpected {statement.__class__.__name__!r} statement")

@@ -206,13 +206,16 @@ class VioletParser(Parser):
 			return [p.param]
 
 	@_("BLOCK_OPEN stmt_list BLOCK_CLOSE")
+	@_("BLOCK_OPEN BLOCK_CLOSE")
 	def block(self, p):
-		return p.stmt_list
+		return getattr(p, 'stmt_list', [])
 
 	@_("FUN name PAREN_OPEN param_list PAREN_CLOSE block")
 	@_("FUN name PAREN_OPEN param_list PAREN_CLOSE COLON typ block")
+	@_("FUN name PAREN_OPEN PAREN_CLOSE block")
+	@_("FUN name PAREN_OPEN PAREN_CLOSE COLON typ block")
 	def func(self, p):
-		return ast.Function(p.name, p.param_list, getanyattr(p, 'typ'), p.block)
+		return ast.Function(p.name, getattr(p, 'param_list', []), getanyattr(p, 'typ'), p.block)
 
 	# function calls
 
@@ -239,7 +242,7 @@ class VioletParser(Parser):
 		if not t:
 			print("ERROR:-1: EOF encountered")
 		else:
-			print(f"ERROR:{t.lineno}: Unexpected {t.value!r}")
+			print(f"ERROR:{t.lineno}: unexpected {t.value!r}")
 			self._error_list.append(copy.copy(t))
 
 parser = VioletParser()
