@@ -1,0 +1,7 @@
+import { out } from std.io;
+
+fun main(argv: List[String]): Void {
+	let x = 5;
+	x = 6;
+	out.write(String.new(x));
+}

@@ -1,0 +1,29 @@
+import { out } from std.io;
+
+fun main(argv: List[String]): Void {
+	let x = 1 + 2;
+	out.write("1 + 2 = ");
+	out.write(String.new(x));
+	out.write("\n");
+
+	let y = 5 - 2;
+	out.write("5 - 2 = ");
+	out.write(String.new(y));
+	out.write("\n");
+
+	let z = 5 * 2;
+	out.write("5 * 2 = ");
+	out.write(String.new(z));
+	out.write("\n");
+
+	let a: Integer = 10 / 2;
+	out.write("10 / 2 = ");
+	out.write(String.new(a));
+	out.write("\n");
+
+	let b: Integer = 5 % 2;
+	out.write("5 % 2 = ");
+	out.write(String.new(b));
+	out.write("\n");
+	return nil;
+}

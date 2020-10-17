@@ -2,10 +2,14 @@ from violet.errors import *
 from violet import objects
 import ast as pyast
 from types import BuiltinMethodType as PyMethodType
+from violet._util import IndexableNamespace
 
 class VioletASTBase:
-	__slots__ = ()
+	__slots__ = 'lineno',
 	cls_name = "pp"
+
+	def __init__(self, prod):
+		self.lineno = prod.lineno
 
 	def __repr__(self):
 		return "{0.__class__.__name__}({1})".format(self, ', '.join(
@@ -17,19 +21,30 @@ class VioletASTBase:
 	def eval(self, runner):
 		pass
 
+	def __getattr__(self, name):
+		try:
+			return super().__getattribute__(name)
+		except AttributeError:
+			raise AttributeError(f'{self.__class__.__name__!r} object has no attribute {name!r}')
+
 class Module(VioletASTBase):
 	__slots__ = ('body',)
 	cls_name = "module"
 
 	def __init__(self, body):
+		super().__init__(IndexableNamespace(lineno=-1))
 		self.body = body
 
 class Primitive(VioletASTBase):
 	__slots__ = ('value', 'type')
 	cls_name = "primitive"
 
-	def __init__(self, value, type):
-		self.value = value
+	def __init__(self, prod, type):
+		super().__init__(prod)
+		if hasattr(prod, 'BRACK_OPEN'):
+			self.value = getattr(prod, 'expr_list', [])
+		else:
+			self.value = prod[0]
 		self.type = type
 
 	def eval(self, runner):
@@ -50,8 +65,13 @@ class Identifier(VioletASTBase):
 	__slots__ = ('name',)
 	cls_name = "identifier"
 
-	def __init__(self, name):
+	def __init__(self, name, lineno):
+		super().__init__(IndexableNamespace(lineno=lineno))
 		self.name = name
+
+	@classmethod
+	def from_production(cls, p):
+		return cls(p.IDENTIFIER, p.lineno)
 
 	def __eq__(self, other):
 		return isinstance(other, self.__class__) and other.name == self.name
@@ -72,9 +92,13 @@ class Attribute(Identifier):
 	__slots__ = ('name', 'value')
 	cls_name = "attribute"
 
-	def __init__(self, name, value):
-		super().__init__(name)
+	def __init__(self, name, value, lineno):
+		super().__init__(name, lineno)
 		self.value = value
+
+	@classmethod
+	def from_production(cls, p):
+		return cls(p.identity, p.name, p.lineno)
 
 	def transform_to_string(self):
 		return self.name.transform_to_string() + '.' + self.value.transform_to_string()
@@ -97,6 +121,7 @@ class TypeId(VioletASTBase):
 		self.name = name
 
 	def type_check(self, value, runner):
+		# print(self.name, value)
 		if isinstance(self.name, Subscript):
 			supert = self.name.name  # Identifier('List')
 			subtypes = self.name.index  # [Identifier('String')]
@@ -105,26 +130,39 @@ class TypeId(VioletASTBase):
 			if not isinstance(value, typ):
 				raise Exception(f"invalid type {value.__class__.__name__!r} for function call (expected {typ.__name__!r})")
 		else:  # single type, eg Identifier('String')
+			# print("single")
 			typ = runner.get_current_scope().get_var(self.name)
+			# print(value, typ, isinstance(value, typ))
 			if not isinstance(value, typ):
 				raise Exception(f"invalid type {value.__class__.__name__!r} for function call (expected {typ.__name__!r})")
 
 class Import(VioletASTBase):
 	__slots__ = ('importing', 'from_module')
 
-	def __init__(self, importing, from_module):
-		self.importing = importing
-		self.from_module = from_module
+	def __init__(self, prod):
+		super().__init__(prod)
+		self.importing = prod.name_list
+		self.from_module = prod.identity
 		
 class Assignment(VioletASTBase):
 	__slots__ = ('global_scope', 'constant', 'identifier', 'type', 'expression')
 
-	def __init__(self, scope, constant, identifier, type, expression):
-		self.global_scope = scope == 'put'
-		self.constant = constant is not None
-		self.identifier = identifier
-		self.type = type
-		self.expression = expression
+	def __init__(self, prod):
+		super().__init__(prod)
+		self.global_scope = prod.SCOPE == 'put'
+		self.constant = getattr(prod, 'CONST', None) is not None
+		self.identifier = prod.name
+		self.type = getattr(prod, 'typ', None)
+		self.expression = prod.expr
+
+class Reassignment(VioletASTBase):
+	__slots__ = 'identifier', 'expression', 'constant'
+
+	def __init__(self, prod):
+		super().__init__(prod)
+		self.identifier = prod.name
+		self.expression = prod.expr
+		self.constant = False
 
 class Parameter(VioletASTBase):
 	__slots__ = ('name', 'type')
@@ -136,11 +174,18 @@ class Parameter(VioletASTBase):
 class Function(VioletASTBase):
 	__slots__ = ('name', 'params', 'ret_value', 'body')
 
-	def __init__(self, name, params, ret_value, body):
-		self.name = name
-		self.params = params
-		self.ret_value = ret_value
-		self.body = body
+	def __init__(self, prod):
+		super().__init__(prod)
+		"""
+	@_("FUN name PAREN_OPEN param_list PAREN_CLOSE block")
+	@_("FUN name PAREN_OPEN param_list PAREN_CLOSE COLON typ block")
+	@_("FUN name PAREN_OPEN PAREN_CLOSE block")
+	@_("FUN name PAREN_OPEN PAREN_CLOSE COLON typ block")
+		"""
+		self.name = prod.name
+		self.params = getattr(prod, 'param_list', [])
+		self.ret_value = getattr(prod, 'typ', None)
+		self.body = prod.block
 
 	def eval(self, runner):
 		return objects.Function(name, params, ret_value, body)
@@ -148,7 +193,9 @@ class Function(VioletASTBase):
 class FunctionCall(VioletASTBase):
 	__slots__ = ('name', 'args')
 
-	def __init__(self, name, args):
+	def __init__(self, prod):
+		super().__init__(prod)
+		name, args = prod.identity, getattr(prod, 'arg_list', [])
 		self.name = name
 		self.args = args
 
@@ -186,10 +233,10 @@ class Control(VioletASTBase):
 class IfControl(Control):
 	__slots__ = 'if_stmt', 'elseif_stmt', 'else_stmt'
 
-	def __init__(self, if_stmt, elseif_stmt=None, else_stmt=None):
-		self.if_stmt = if_stmt
-		self.elseif_stmt = elseif_stmt
-		self.else_stmt = else_stmt
+	def __init__(self, prod):
+		super().__init__(IndexableNamespace(lineno=prod.if_stmt.lineno))
+		for name in self.__slots__:
+			setattr(self, name, getattr(prod, name, None))
 
 	def eval(self, runner, func):
 		can = self.if_stmt.eval(runner, func)
@@ -216,9 +263,10 @@ class SwitchControl(Control):
 class If(Control):
 	__slots__ = 'expr', 'body'
 
-	def __init__(self, expr, body):
-		self.expr = expr
-		self.body = body
+	def __init__(self, prod):
+		super().__init__(prod)
+		self.expr = prod.expr
+		self.body = prod.block
 
 	def eval(self, runner, func):
 		expr = self.expr.eval(runner)
@@ -233,9 +281,10 @@ class If(Control):
 class ElseIf(Control):
 	__slots__ = 'expr', 'body'
 
-	def __init__(self, expr, body):
-		self.expr = expr
-		self.body = body
+	def __init__(self, prod):
+		super().__init__(prod)
+		self.expr = prod.expr
+		self.body = prod.block
 
 	def eval(self, runner, func):
 		return If.eval(self, runner, func)
@@ -243,8 +292,9 @@ class ElseIf(Control):
 class Else(Control):
 	__slots__ = 'body',
 
-	def __init__(self, body):
-		self.body = body
+	def __init__(self, prod):
+		super().__init__(prod)
+		self.body = prod.block
 
 	def eval(self, runner, func):
 		with runner.new_scope():
@@ -311,7 +361,7 @@ class BiOperatorExpr(VioletASTBase):
 		return l * r
 
 	def _Divide(self, l, r):
-		return l / r
+		return l // r
 
 	def _Modulus(self, l, r):
 		return l % r

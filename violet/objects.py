@@ -1,5 +1,6 @@
 import inspect
 from violet.errors import *
+from violet._util import IndexableNamespace
 
 # __all__ = ['Module']
 
@@ -20,14 +21,13 @@ _OPS = {
 
 class _Meta(type):
 	def __new__(mcs, cname, bases, attrs):
-		# print(attrs)
 		new = attrs.copy()
 		for name, value in attrs.items():
 			if name.startswith('_operator_'):
 				new.pop(name)
 				op = name[10:]
-				# print(name)
 				name = 'operator' + _OPS[op]
+				# print(cname, name)
 				new[name] = value
 		return super().__new__(mcs, cname, bases, new)
 
@@ -36,14 +36,29 @@ class _Meta(type):
 		return cls.__name__
 
 class Object(metaclass=_Meta):
+	def ensure_type(self, other):
+		return isinstance(other, self.__class__)
+
 	def __add__(self, other):
 		return self.get_special_method('+')(other)
+
+	def __sub__(self, other):
+		return self.get_special_method('-')(other)
+
+	def __mul__(self, other):
+		return self.get_special_method('*')(other)
+
+	def __floordiv__(self, other):
+		return self.get_special_method('/')(other)
+
+	def __mod__(self, other):
+		return self.get_special_method('%')(other)
 
 	def get_special_method(self, name):
 		# print(name)
 		meth = getattr(self, 'operator'+name, None)
 		if meth is None:
-			raise OperatorNotApplicable(self, name)
+			raise Exception(f'operator{name} not available on type {self.__class__.__name__!r}')
 		if not inspect.ismethod(meth):
 			raise Panic(f"operator{name} not defined as a callable method")
 		return meth
@@ -107,16 +122,12 @@ class Primitive(Object):
 	def __repr__(self):
 		return f'{self.__class__.__name__}({self.value0})'
 
+	def __str__(self):
+		return str(self.value0)
+
 	def get_type(self):
 		from violet.vast import TypeId, Identifier
-		return TypeId(Identifier(self.__class__.__name__))
-
-	def _operator_plus(self, other):
-		# print(self, type(self), self.__qualname__)
-		# print(repr(self), repr(other))
-		if not isinstance(other, self.__class__):
-			raise Exception(f"operator+ not allowed between classes of '{self.__class__.__qualname__}' and '{other.__class__.__name__}'")
-		return self.__class__(self.value0 + other.value0)
+		return TypeId(Identifier(self.__class__.__name__, -1))
 
 	def _operator_equals(self, other):
 		return Boolean(self.value0 == other.value0)
@@ -145,7 +156,7 @@ class Void(Primitive):
 
 	def get_type(self):
 		from violet.vast import TypeId, Identifier
-		return TypeId(Identifier('Void'))
+		return TypeId(Identifier('Void', -1))
 
 class Boolean(Primitive):
 	def __bool__(self):
@@ -162,7 +173,30 @@ class String(Primitive):
 		return cls(str(value[0]))
 
 class Integer(Primitive):
-	pass
+	def _operator_plus(self, other):
+		if not self.ensure_type(other):
+			raise Exception(f'operator+ not applicable between types {self.__class__.__name__!r} and {other.__class__.__name__!r}')
+		return self.__class__(self.value0 + other.value0)
+
+	def _operator_minus(self, other):
+		if not self.ensure_type(other):
+			raise Exception(f'operator- not applicable between types {self.__class__.__name__!r} and {other.__class__.__name__!r}')
+		return self.__class__(self.value0 - other.value0)
+
+	def _operator_times(self, other):
+		if not self.ensure_type(other):
+			raise Exception(f'operator* not applicable between types {self.__class__.__name__!r} and {other.__class__.__name__!r}')
+		return self.__class__(self.value0 * self.value0)
+
+	def _operator_divide(self, other):
+		if not self.ensure_type(other):
+			raise Exception(f'operator/ not applicable between types {self.__class__.__name__!r} and {other.__class__.__name__!r}')
+		return self.__class__(self.value0 // other.value0)
+
+	def _operator_modulus(self, other):
+		if not self.ensure_type(other):
+			raise Exception(f'operator/ not applicable between types {self.__class__.__name__!r} and {other.__class__.__name__!r}')
+		return self.__class__(self.value0 % other.value0)
 
 class List(Primitive):
 	@classmethod
@@ -195,8 +229,9 @@ class Function(Object):
 		self._return_flag = False
 
 		if body:
+			# print(body[-1])
 			if not isinstance(body[-1], Return):
-				body.append(Return(Primitive('nil', Void)))
+				body.append(Return(Primitive(IndexableNamespace(value='nil', lineno=body[-1].lineno), Void)))
 
 	def reset_state(self):
 		ret = self._return

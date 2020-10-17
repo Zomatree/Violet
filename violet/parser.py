@@ -42,27 +42,32 @@ class VioletParser(Parser):
 	@_("expr EOS")
 	@_("iport EOS")
 	@_("assign EOS")
+	@_("reassign EOS")
 	# @_("func_call EOS")
-	@_("func EOS")
+	@_("func")
 	@_("return_stmt EOS")
 	@_("control")
 	def stmt(self, p):
 		# print("STATEMENT")
-		return getanyattr(p, 'expr', 'iport', 'assign', 'func_call', 'func', 'return_stmt', 'newline', 'control')
+		return getanyattr(p, 'expr', 'iport', 'assign', 'func', 'return_stmt', 'newline', 'control', 'reassign')
 
 	@_("SCOPE name EQUALS expr")
 	@_("SCOPE CONST name EQUALS expr")
 	def assign(self, p):
-		stmt = ast.Assignment(p.SCOPE, getanyattr(p, 'CONST'), p.name, None, p.expr)
+		stmt = ast.Assignment(p)
 		# print(stmt)
 		return stmt
 
 	@_("SCOPE name COLON typ EQUALS expr")
 	@_("SCOPE CONST name COLON typ EQUALS expr")
 	def assign(self, p):
-		stmt = ast.Assignment(p.SCOPE, getanyattr(p, 'CONST'), p.name, p.typ, p.expr)
+		stmt = ast.Assignment(p)
 		# print(stmt)
 		return stmt
+
+	@_("name EQUALS expr")
+	def reassign(self, p):
+		return ast.Reassignment(p)
 
 	# expressions
 
@@ -139,7 +144,7 @@ class VioletParser(Parser):
 	"""
 	@_("IDENTIFIER")
 	def name(self, p):
-		return ast.Identifier(p.IDENTIFIER)
+		return ast.Identifier.from_production(p)
 
 	@_("identity ATTR name")
 	# @_("name ATTR name")
@@ -147,7 +152,7 @@ class VioletParser(Parser):
 	def identity(self, p):
 		# print("attr ident", p.IDENTIFIER)
 		if len(p) == 3:
-			return ast.Attribute(p.identity, p.name)
+			return ast.Attribute.from_production(p)
 		return p.name
 		
 	# """
@@ -158,29 +163,29 @@ class VioletParser(Parser):
 
 	@_('DECIMAL')
 	def primitive(self, p):
-		prim = ast.Primitive(p.DECIMAL, type=objects.Integer)
+		prim = ast.Primitive(p, objects.Integer)
 		# print(prim)
 		return prim
 
 	@_('STRING')
 	def primitive(self, p):
-		prim = ast.Primitive(p.STRING, type=objects.String)
+		prim = ast.Primitive(p, objects.String)
 		# print(prim)
 		return prim
 
 	@_('TRUE')
 	@_('FALSE')
 	def primitive(self, p):
-		return ast.Primitive(getanyattr(p, 'TRUE', 'FALSE'), type=objects.Boolean)
+		return ast.Primitive(p, objects.Boolean)
 
 	@_('NIL')
 	def primitive(self, p):
-		return ast.Primitive(p.NIL, type=objects.Void)
+		return ast.Primitive(p, objects.Void)
 
 	@_('BRACK_OPEN expr_list BRACK_CLOSE')
 	@_('BRACK_OPEN BRACK_CLOSE')
 	def primitive(self, p):
-		return ast.Primitive(getattr(p, 'expr_list', []), type=objects.List)
+		return ast.Primitive(p, objects.List)
 
 	# import
 
@@ -207,9 +212,7 @@ class VioletParser(Parser):
 
 	@_("IMPORT BLOCK_OPEN name_list BLOCK_CLOSE FROM identity")
 	def iport(self, p):
-		imp = ast.Import(p.name_list, from_module=p.identity)
-		# print(imp)
-		return imp
+		return ast.Import(p)
 
 	# types
 
@@ -251,7 +254,7 @@ class VioletParser(Parser):
 	@_("FUN name PAREN_OPEN PAREN_CLOSE block")
 	@_("FUN name PAREN_OPEN PAREN_CLOSE COLON typ block")
 	def func(self, p):
-		return ast.Function(p.name, getattr(p, 'param_list', []), getanyattr(p, 'typ'), p.block)
+		return ast.Function(p)
 
 	# function calls
 
@@ -265,7 +268,7 @@ class VioletParser(Parser):
 	@_("identity PAREN_OPEN PAREN_CLOSE")
 	@_("identity PAREN_OPEN arg_list PAREN_CLOSE")
 	def func_call(self, p):
-		fun = ast.FunctionCall(p.identity, getattr(p, 'arg_list', []))
+		fun = ast.FunctionCall(p)
 		# print(fun)
 		return fun
 
@@ -281,26 +284,25 @@ class VioletParser(Parser):
 	@_("if_stmt elseif_stmt else_stmt")
 	@_("if_stmt else_stmt")
 	def control(self, p):
-		mapping = {k: getattr(p, k) for k in p._namemap.keys()}
-		return ast.IfControl(**mapping)
+		return ast.IfControl(p)
 
 	@_("IF PAREN_OPEN expr PAREN_CLOSE block")
 	def if_stmt(self, p):
-		return ast.If(p.expr, p.block)
+		return ast.If(p)
 
 	@_("ELSEIF PAREN_OPEN expr PAREN_CLOSE block")
 	def elseif_stmt(self, p):
-		return ast.ElseIf(p.expr, p.block)
+		return ast.ElseIf(p)
 
 	@_("ELSE block")
 	def else_stmt(self, p):
-		return ast.Else(p.block)
+		return ast.Else(p)
 
 	def error(self, t):
 		if not t:
 			print("ERROR:-1: EOF encountered")
 		else:
-			print(f"ERROR:{t.lineno}: unexpected {t.value!r}")
+			# print(f"ERROR:{t.lineno}: unexpected {t.value!r}")
 			self._error_list.append(copy.copy(t))
 
 parser = VioletParser()

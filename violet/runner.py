@@ -12,7 +12,9 @@ from violet.lexer import lexer
 from violet.parser import parser
 from violet import vast as ast
 from violet import errors
+from violet.errors import StatementError
 from violet import objects
+from violet._util import IndexableNamespace
 
 _STD_TYPES = {
 	'nil': objects.Void,
@@ -44,7 +46,8 @@ class CannotReassignConst(Exception):
 		super().__init__(f"constant variable {var.name!r} cannot be reassigned")
 
 class Scope:
-	def __init__(self):
+	def __init__(self, runner):
+		self.runner = runner
 		self.vars = {}
 		self.const_vars = {}
 		self.parent = None
@@ -55,11 +58,15 @@ class Scope:
 	def __repr__(self):
 		return "Scope(" + repr(self.vars) + ", " + repr(self.const_vars) + ")"
 
-	def is_var_assigned(self, identifier):
-		return identifier in self.vars or identifier in self.const_vars or identifier.name in _STD_TYPES
+	def is_var_assigned(self, identifier, recurse=True):
+		return \
+			identifier in self.vars or \
+			identifier in self.const_vars or \
+			identifier.name in _STD_TYPES or \
+			(recurse and self.parent and self.parent.is_var_assigned(identifier))
 
 	def get_var_noid(self, name):
-		return self.get_var(ast.Identifier(name))
+		return self.get_var(ast.Identifier(name, -1))
 
 	def get_var(self, identifier):
 		# print(self.hash, ": getting", identifier)
@@ -77,22 +84,21 @@ class Scope:
 				raise
 			return self.parent.get_var(identifier)
 
-	def reassign_var(self, identifier, value):
+	def reassign_var(self, identifier, value, *, const=None):  # pointless const argument, just for safety
+		# print("reassign", identifier, value)
 		if identifier in self.const_vars:
 			raise CannotReassignConst(identifier)  # cannot reassign consts
-		orig = self.vars[identifier]
-		if not orig.type_check(value):
-			raise errors.TypeCheckerFailed(value, orig.__class__)
+		orig = ast.TypeId(ast.Identifier(self.vars[identifier].__class__.__name__, identifier.lineno))
+		orig.type_check(value, self.runner)
 		self.vars[identifier] = value
 
 	def set_var(self, identifier, value, *, const=False):
 		# print(self.hash, ": assigning", identifier, value)
-		if not isinstance(value, objects.Object):
+		if not isinstance(value, (objects.Object, objects.ThinPythonObjectWrapper)):
 			value = objects.ThinPythonObjectWrapper(value)
 		# print("assigning", identifier, "to", value, "as const?", const)
-		if self.is_var_assigned(identifier):
-			# print(identifier, "already assigned")
-			return self.reassign_var(identifier, value)
+		if self.is_var_assigned(identifier, False):
+			print(f"WARN: shadowing variable {identifier.transform_to_string()!r}")
 		if const:
 			# print("set const var")
 			self.const_vars[identifier] = value
@@ -101,12 +107,12 @@ class Scope:
 			self.vars[identifier] = value
 
 class Runner:
-	def __init__(self, code):
-		self.global_scope = gl = Scope()
+	def __init__(self, code, *, debug=False):
+		self.debug = debug
+		self.global_scope = gl = Scope(self)
 		self.scopes = {gl.hash: gl}
 		self.active_scope = gl.hash
 		self.code = code
-		self.runtime_errors = []
 		self.lineno = 0
 
 	@staticmethod
@@ -120,16 +126,15 @@ class Runner:
 		return self.scopes[self.active_scope]
 
 	@classmethod
-	def open(cls, fp):
+	def open(cls, fp, **kwargs):
 		with open(fp) as f:
-			return cls(f.read())
+			return cls(f.read(), **kwargs)
 
 	def run(self):
 		module = ast.Module([])
 		body = parser.parse(lexer.tokenize(self.code))
 		if parser._error_list:
 			for error in parser._error_list:
-				pass
 				print(f"ERROR:{error.lineno}: Unexpected {error.value!r}")
 			sys.exit(1)
 
@@ -141,33 +146,36 @@ class Runner:
 		except errors.Panic as e:
 			print("FATAL: system error occured:", e, file=sys.stderr)
 			sys.exit(9)
+		except StatementError as e:
+			if self.debug:
+				raise e
+			print(f"ERROR:{e.stmt.lineno}: {e}")
+			sys.exit(1)
 		# print(self.get_current_scope())
 		# pprint.pprint(self.scopes)
 		# return self
 		# print(module, file=sys.stdout)
 		try:
-			main = self.get_current_scope().get_var(ast.Identifier('main'))
+			main = self.get_current_scope().get_var(ast.Identifier('main', -1))
 		except VarNotFound:
 			print("ERROR: missing entry point function 'main'", file=sys.stderr)
 			sys.exit(1)
 
-		argv = ast.Primitive([
-			ast.Primitive('"a"', type=objects.String),
-			# ast.Primitive('1', type=objects.Integer)
-		], type=objects.List).eval(self)
+		argv = ast.Primitive(IndexableNamespace(value=[ast.Primitive(IndexableNamespace(value='"a"',lineno=-1),objects.String)],lineno=-1),objects.List).eval(self)
 
 		try:
 			main([argv], runner=self)
-		except Exception as e:
-			# raise e
-			print(f"ERROR:{self.lineno}", e, file=sys.stderr)
+		except StatementError as e:
+			if self.debug:
+				raise e
+			print(f"ERROR:{e.stmt.lineno}:", e, file=sys.stderr)
 			sys.exit(1)
 
 		# pprint.pprint(self.scopes)
 
 	@contextlib.contextmanager
 	def new_scope(self):
-		scope = Scope()
+		scope = Scope(self)
 		scope.parent = self.get_current_scope()
 		self.scopes[scope.hash] = scope
 		old_scope = self.active_scope
@@ -181,21 +189,23 @@ class Runner:
 
 	def exec_module_body(self, stmt_list):
 		for statement in stmt_list:
-			self.lineno += 1
 			# print("executing", statement)
 
-			if isinstance(statement, ast.Import):
-				self._exec_import(statement)
-			elif isinstance(statement, ast.Assignment):
-				self._exec_assignment(statement)
-			elif isinstance(statement, ast.Function):
-				self._exec_function_spawn(statement)
-			else:
-				print(f"ERROR:{self.lineno}: unexpected {statement.__class__.__name__!r} statement", file=sys.stderr)
-
-			for error in self.runtime_errors:
-				print(f"ERROR:{self.lineno}: {error}", file=sys.stderr)
-			self.runtime_errors.clear()
+			try:
+				if isinstance(statement, ast.Import):
+					self._exec_import(statement)
+				elif isinstance(statement, ast.Assignment):
+					self._exec_assignment(statement)
+				elif isinstance(statement, ast.Reassignment):
+					self._exec_assignment(statement, True)
+				elif isinstance(statement, ast.Function):
+					self._exec_function_spawn(statement)
+				else:
+					raise StatementError(statement, f'unexpected {statement.__class__.__name__!r} statement')
+			except Exception as e:
+				if isinstance(e, StatementError):
+					raise
+				raise StatementError(statement, str(e))
 
 	def exec_function_body(self, body, func):
 		for statement in body:
@@ -205,6 +215,8 @@ class Runner:
 			# print("executing", statement.__class__.__name__)
 			if isinstance(statement, ast.Assignment):
 				self._exec_assignment(statement)
+			elif isinstance(statement, ast.Reassignment):
+				self._exec_assignment(statement, True)
 			elif isinstance(statement, ast.Return):
 				self._exec_return(statement, func)
 				func._return_flag = True
@@ -221,6 +233,7 @@ class Runner:
 	def _exec_import(self, stmt):
 		form = stmt.from_module
 		if isinstance(form, ast.Attribute):
+			# print(form)
 			if form.name.name == 'std':
 				return self._exec_std_import(stmt)
 		else:
@@ -237,13 +250,11 @@ class Runner:
 			# print("importing violet."+name)
 			module = importlib.import_module('violet.'+name)
 		except ImportError:
-			# print("import failed")
-			self.runtime_errors.append(errors.ModuleDoesNotExist(name))
+			raise StatementError(stmt, f'module {name!r} does not exist')
 		else:
 			for iport in stmt.importing:
 				if not hasattr(module, iport.name):
-					# print("failed to import", iport)
-					self.runtime_errors.append(errors.FailedToImportFromModule(iport.name, name))
+					raise StatementError(stmt, f'failed to import {iport.name!r} from {name!r}')
 				else:
 					# print("imported", iport)
 					self.get_current_scope().set_var(iport, getattr(module, iport.name))
@@ -253,33 +264,40 @@ class Runner:
 		try:
 			new = Runner.open(stmt.from_module.name+'.vi').run()
 		except FileNotFoundError:
-			self.runtime_errors.append(errors.ModuleDoesNotExist(stmt.from_module.name))
-			return
+			raise StatementError(stmt, f'module {stmt.from_module.name!r} does not exist')
 
 		for name in stmt.importing:
 			try:
 				var = new.get_current_scope().get_var(name)
 			except Exception as e:
-				self.runtime_errors.append(errors.FailedToImportFromModule(name.name, stmt.from_module.name))
-				# print(type(e).__name__, e)
+				raise StatementError(stmt, f'failed to import {name.name!r} from {stmt.from_module.name!r}')
 			else:
 				self.get_current_scope().set_var(name, var)
 
-	def _exec_assignment(self, statement):
-		# print(statement)
-		scope = self.global_scope if statement.global_scope else self.get_current_scope()
-		expr = statement.expression.eval(self)
+	def _exec_assignment(self, statement, reassign=False):
+		# print(statement, reassign)
+		scope = self.global_scope if not reassign and statement.global_scope else self.get_current_scope()
+		try:
+			expr = statement.expression.eval(self)
+		except Exception as e:
+			raise StatementError(statement, str(e))
 		# print(expr)
-		typ = statement.type
+		if reassign:
+			if not scope.is_var_assigned(statement.identifier):
+				raise StatementError(statement, f'variable {statement.identifier.name!r} is not defined')
+			meth = scope.reassign_var
+		else:
+			typ = statement.type
+			if typ is not None:
+				typ.type_check(expr, self)
 
-		if typ is not None:
-			typ.type_check(expr, self)
+			meth = scope.set_var
 
 		try:
-			scope.set_var(statement.identifier, expr, const=statement.constant)
+			# print(meth)
+			meth(statement.identifier, expr, const=statement.constant)
 		except Exception as e:
-			# raise e
-			self.runtime_errors.append(str(e))
+			raise StatementError(statement, str(e))
 
 	def _exec_return(self, statement, func):
 		# print(statement)

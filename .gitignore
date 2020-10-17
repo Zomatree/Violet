@@ -2,3 +2,5 @@
 parsetab.out
 **/*.sublime-project
 **/*.sublime-workspace
+test_out.py
+thing.vi

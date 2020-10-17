@@ -2,16 +2,16 @@ import { io } from std;
 
 fun test(i: Integer, j: Integer): Boolean {
 	return i <= j;
-};
+}
 
 fun main(argv: List[String]) {
 	let x = "if?\n";
 	io.out.write(x);
-	if (test(1, 1)) {
+	if (test(1, 0)) {
 		let y = "IF!\n";
 		io.out.write(y);
 	}
-	elseif (test(1, 2)) {
+	elseif (test(1, 1)) {
 		let y = "ELSEIF!\n";
 		io.out.write(y);
 	}
@@ -19,4 +19,4 @@ fun main(argv: List[String]) {
 		let y = "ELSE!\n";
 		io.out.write(y);
 	}
-};
+}

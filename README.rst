@@ -14,6 +14,6 @@ Sample "Hello World" example:
        let a = io.out.write("Hello, world!\n");
    };
 
-Other examples can be found in the `examples/` directory.
+Other examples can be found in the ``examples/`` directory.
 
 Clone the repo, and use ``python -m violet <file>`` to invoke the interpreter.
