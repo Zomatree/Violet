@@ -280,11 +280,18 @@ class VioletParser(Parser):
 	# control flow
 
 	@_("if_stmt")
-	@_("if_stmt elseif_stmt")
-	@_("if_stmt elseif_stmt else_stmt")
+	@_("if_stmt elseif_chain")
+	@_("if_stmt elseif_chain else_stmt")
 	@_("if_stmt else_stmt")
 	def control(self, p):
 		return ast.IfControl(p)
+
+	@_("elseif_chain elseif_stmt")
+	@_("elseif_stmt")
+	def elseif_chain(self, p):
+		if len(p) == 2:
+			return [*p.elseif_chain, p.elseif_stmt]
+		return [p.elseif_stmt]
 
 	@_("IF PAREN_OPEN expr PAREN_CLOSE block")
 	def if_stmt(self, p):

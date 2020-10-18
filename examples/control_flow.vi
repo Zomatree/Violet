@@ -15,6 +15,10 @@ fun main(argv: List[String]) {
 		let y = "ELSEIF!\n";
 		io.out.write(y);
 	}
+	elseif (test(1, 2)) {
+		let y = "ELSEIF2!\n";
+		io.out.write(y);
+	}
 	else {
 		let y = "ELSE!\n";
 		io.out.write(y);

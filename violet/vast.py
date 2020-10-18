@@ -231,18 +231,23 @@ class Control(VioletASTBase):
 		pass
 
 class IfControl(Control):
-	__slots__ = 'if_stmt', 'elseif_stmt', 'else_stmt'
+	__slots__ = 'if_stmt', 'elseif_chain', 'else_stmt'
 
 	def __init__(self, prod):
 		super().__init__(IndexableNamespace(lineno=prod.if_stmt.lineno))
 		for name in self.__slots__:
-			setattr(self, name, getattr(prod, name, None))
+			attr = getattr(prod, name, None)
+			# print(name, attr)
+			setattr(self, name, attr)
 
 	def eval(self, runner, func):
 		can = self.if_stmt.eval(runner, func)
 		# print("IF ->", can)
-		if not can and self.elseif_stmt:
-			can = self.elseif_stmt.eval(runner, func)
+		if not can and self.elseif_chain:
+			for stmt in self.elseif_chain:
+				can = stmt.eval(runner, func)
+				if can:
+					break
 			# print("ELSEIF ->", can)
 		if not can and self.else_stmt:
 			self.else_stmt.eval(runner, func)
