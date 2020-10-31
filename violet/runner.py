@@ -136,6 +136,7 @@ class Runner:
 		if parser._error_list:
 			for error in parser._error_list:
 				print(f"ERROR:{error.lineno}: Unexpected {error.value!r}")
+			parser._error_list.clear()
 			sys.exit(1)
 
 		module.body.extend(body)
@@ -160,15 +161,34 @@ class Runner:
 		except VarNotFound:
 			print("ERROR: missing entry point function 'main'", file=sys.stderr)
 			sys.exit(1)
-
-		argv = ast.Primitive(IndexableNamespace(value=[ast.Primitive(IndexableNamespace(value='"a"',lineno=-1),objects.String)],lineno=-1),objects.List).eval(self)
+		argv = ast.Primitive(
+			IndexableNamespace(
+				value=[
+					ast.Primitive(
+						IndexableNamespace(
+							value='"a"',
+							lineno=main.lineno
+						),
+						objects.String
+					)
+				],
+				lineno=main.lineno
+			),
+			objects.List
+		).eval(self)
 
 		try:
-			main([argv], runner=self)
-		except StatementError as e:
+			with self.new_scope():
+				main([argv], runner=self)
+		except (StatementError) as e:
 			if self.debug:
 				raise e
 			print(f"ERROR:{e.stmt.lineno}:", e, file=sys.stderr)
+			sys.exit(1)
+		except Exception as e:
+			if self.debug:
+				raise e
+			print(f"ERROR:{main.lineno}:", e, file=sys.stderr)
 			sys.exit(1)
 
 		# pprint.pprint(self.scopes)
@@ -225,7 +245,7 @@ class Runner:
 			elif isinstance(statement, ast.Control):
 				statement.eval(self, func)
 			else:
-				print(f"ERROR:{self.lineno}: unexpected {statement.__class__.__name__!r} statement", file=sys.stderr)
+				raise StatementError(statement, f'unexpected {statement.__class__.__name__!r} statement')
 
 	def exec_module(self, module):
 		self.exec_module_body(module.body)
@@ -315,5 +335,5 @@ class Runner:
 
 	def _exec_function_spawn(self, stmt):
 		# print("spawn function")
-		self.get_current_scope().set_var(stmt.name, objects.Function(stmt.name, stmt.params, stmt.ret_value, stmt.body))
+		self.get_current_scope().set_var(stmt.name, objects.Function(stmt.name, stmt.params, stmt.ret_value, stmt.body, stmt.lineno))
 	
