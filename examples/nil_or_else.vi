@@ -1,0 +1,12 @@
+import { out } from std.io;
+
+fun main(argv: List[String]) {
+	let x = nil;
+	let y = "not nil";
+
+	out.write(String.new(x ?? y));
+	out.write("\n");
+
+	out.write(String.new(x ?? x));
+	out.write("\n");
+}
