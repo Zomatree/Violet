@@ -23,6 +23,7 @@ class VioletParser(Parser):
 
 	precedence = (
 		('nonassoc', EQ, NE, GT, GE, LT, LE),
+		('left', DQMARK),
 		('left', MODULUS),
 		('left', DIVIDE, MULTIPLY),
 		('left', PLUS, MINUS),
@@ -304,6 +305,10 @@ class VioletParser(Parser):
 	@_("ELSE block")
 	def else_stmt(self, p):
 		return ast.Else(p)
+
+	@_("expr DQMARK expr")
+	def expr(self, p):
+		return ast.NilOrElse(p)
 
 	def error(self, t):
 		if not t:

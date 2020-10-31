@@ -70,7 +70,7 @@ class VioletLexer(Lexer):
 	EOS = ';'
 	EQUALS = '='
 	COLON = ':'
-	# DQMARK = r'\?\?'
+	DQMARK = r'\?\?'
 	# QMARK = r'\?'
 
 	BLOCK_OPEN = '{'

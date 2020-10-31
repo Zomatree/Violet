@@ -265,6 +265,23 @@ class LoopControl(Control):
 class SwitchControl(Control):
 	pass  # todo
 
+class NilOrElse(Control):
+	__slots__ = ('expr0', 'expr1')
+
+	def __init__(self, prod):
+		super().__init__(prod)
+		self.expr0 = prod.expr0
+		self.expr1 = prod.expr1
+
+	def eval(self, runner):
+		left = runner.get_var(self.expr0) if isinstance(self.expr0, Identifier) else self.expr0.eval(runner)
+		right = runner.get_var(self.expr1) if isinstance(self.expr1, Identifier) else self.expr1.eval(runner)
+		# sprint(f"{self.expr0!r}: {left!r}")
+		# print(f"{self.expr1!r}: {right!r}")
+		if isinstance(left, objects.Void):
+			return right
+		return left
+
 class If(Control):
 	__slots__ = 'expr', 'body'
 

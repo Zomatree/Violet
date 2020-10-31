@@ -56,6 +56,7 @@ class Object(metaclass=_Meta):
 
 	def get_special_method(self, name):
 		# print(name)
+		# sprint(dir(self))
 		meth = getattr(self, 'operator'+name, None)
 		if meth is None:
 			raise Exception(f'operator{name} not available on type {self.__class__.__name__!r}')
@@ -120,10 +121,10 @@ class Primitive(Object):
 		self.value0 = value
 
 	def __repr__(self):
-		return f'{self.__class__.__name__}({self.value0})'
+		return f'{self.__class__.__name__}({self.value0!r})'
 
 	def __str__(self):
-		return str(self.value0)
+		return repr(self.value0) if self.value0 is not None else 'nil'
 
 	def get_type(self):
 		from violet.vast import TypeId, Identifier
@@ -218,9 +219,10 @@ class Function(Object):
 	def __repr__(self):
 		return f"Function<{self.name}>()"
 
-	def __init__(self, name, params, return_type, body):
+	def __init__(self, name, params, return_type, body, lineno):
 		from violet.vast import Return, Primitive
 
+		self.lineno = lineno
 		self.name = name
 		self.params = params
 		self.return_type = return_type
