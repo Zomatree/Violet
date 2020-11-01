@@ -312,7 +312,7 @@ class Runner:
 				for iport in stmt.importing:
 					if iport.name == "*":
 						if not hasattr(module, "__all__"):
-							importables = (x for x in dir(module) if not x.startswith("_"))
+							importables = (x for x in dir(module) if x.isalpha() or not x.startswith("__"))
 
 						else:
 							importables = module.__all__
