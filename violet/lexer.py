@@ -22,7 +22,7 @@ class VioletLexer(Lexer):
 		EQUALS,
 		COLON,
 		DQMARK,
-		# QMARK,
+		QMARK,
 
 		BLOCK_OPEN,
 		BLOCK_CLOSE,
@@ -76,7 +76,7 @@ class VioletLexer(Lexer):
 	EQUALS = '='
 	COLON = ':'
 	DQMARK = r'\?\?'
-	# QMARK = r'\?'
+	QMARK = r'\?'
 
 	BLOCK_OPEN = '{'
 	BLOCK_CLOSE = '}'

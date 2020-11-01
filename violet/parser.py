@@ -22,6 +22,7 @@ class VioletParser(Parser):
 	tokens = VioletLexer.tokens
 
 	precedence = (
+		('left', "tern"),
 		('nonassoc', EQ, NE, GT, GE, LT, LE),
 		('left', DQMARK),
 		('left', MODULUS),
@@ -77,6 +78,10 @@ class VioletParser(Parser):
 		if len(p) == 3:
 			return [*p.expr_list, p.expr]
 		return [p.expr]
+
+	@_("expr QMARK expr COLON expr %prec tern")
+	def expr(self, p):
+		return ast.TernaryQMark(p)
 
 	@_("func_call")
 	def expr(self, p):

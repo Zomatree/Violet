@@ -177,6 +177,31 @@ class Parameter(VioletASTBase):
 		self.name = name
 		self.type = type
 
+class TernaryQMark(VioletASTBase):
+	__slots__ = 'expr0', 'expr1', 'expr2'
+
+	def __init__(self, prod):
+		super().__init__(prod)
+		for i in self.__slots__:
+			setattr(self, i, getattr(prod, i))
+
+	def eval(self, runner):
+		# print(self)
+		# print(self.expr0, self.expr1, self.expr2)
+		q = self.expr0.eval(runner)
+		if not isinstance(q, objects.Boolean):
+			raise Exception(f"expected \"Boolean\" in ternary, found {q.__class__.__name__!r}")
+
+		left = self.expr1.eval(runner)
+		right = self.expr2.eval(runner)
+
+		if not isinstance(right, left.__class__):
+			raise Exception(f"mismatched types in ternary: {left.__class__.__name__!r} and {right.__class__.__name__!r}")
+
+		if q.value0:
+			return left
+		return right
+
 class Function(VioletASTBase):
 	__slots__ = ('name', 'params', 'ret_value', 'body')
 
