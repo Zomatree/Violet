@@ -323,6 +323,14 @@ class Runner:
 			raise StatementError(stmt, f'module {stmt.from_module.name!r} does not exist')
 
 		for name in stmt.importing:
+			if name.name == "*":
+				vars = new.get_current_scope().vars
+				scope = self.get_current_scope()
+				for ident, value in vars.items():
+					scope.set_var(ident, value)
+
+				break
+
 			try:
 				var = new.get_current_scope().get_var(name)
 			except Exception as e:
