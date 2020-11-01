@@ -97,6 +97,9 @@ class ThinPythonObjectWrapper:
 			return super().__getattribute__(name)
 		return self.obj.__getattribute__(name)
 
+	def __call__(self, *args, **kwargs):
+		return self.obj.__call__(*args, **kwargs)
+
 	def __str__(self):
 		return str(self.obj)
 

@@ -19,7 +19,7 @@ class VioletLexer(Lexer):
 		EOS,
 		EQUALS,
 		COLON,
-		# DQMARK,
+		DQMARK,
 		# QMARK,
 
 		BLOCK_OPEN,

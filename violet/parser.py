@@ -49,8 +49,7 @@ class VioletParser(Parser):
 	@_("return_stmt EOS")
 	@_("control")
 	def stmt(self, p):
-		# print("STATEMENT")
-		return getanyattr(p, 'expr', 'iport', 'assign', 'func', 'return_stmt', 'newline', 'control', 'reassign')
+		return p[0]
 
 	@_("SCOPE name EQUALS expr")
 	@_("SCOPE CONST name EQUALS expr")

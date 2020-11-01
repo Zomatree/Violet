@@ -114,11 +114,17 @@ class Subscript(VioletASTBase):
 		self.name = name
 		self.index = index
 
+	def eval(self, runner):
+		return self.name.eval(runner)
+
 class TypeId(VioletASTBase):
 	__slots__ = ('name',)
 
 	def __init__(self, name):
 		self.name = name
+
+	def eval(self, runner):
+		return self.name.eval(runner)
 
 	def type_check(self, value, runner):
 		# print(self.name, value)

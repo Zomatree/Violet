@@ -16,21 +16,23 @@ if __name__ == '__main__':
 	if not args.test:
 		Runner.open(args.file, debug=args.verbose).run()
 	else:
-		failed = False
+		failed = 0
+		total = 0
 		for file in glob.glob("examples/*.vi"):
+			total += 1
 			print("\nTEST:", file)
 			try:
 				Runner.open(file, debug=args.verbose).run()
 			except SystemExit:
-				failed = True
+				failed += 1
 			except BaseException:
 				traceback.print_exc(file=sys.stderr)
-				failed = True
+				failed += 1
 			# print(out.getvalue())
 		if failed:
-			print("\n\n-- TESTS FAILED --")
+			print(f"\n\n-- {failed}/{total} TESTS FAILED --")
 		else:
-			print("\n\n-- TESTS PASSED --")
+			print(f"\n\n-- {total}/{total} TESTS PASSED --")
 	"""
 	with open(args.file) as f:
 		mod = Module([])
