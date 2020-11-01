@@ -1,18 +1,11 @@
-import { out } from std.io;
-import { typeof } from std;
+import { print, typeof } from std;
 
 fun main(argv: List[String]) {
-	out.write("Converting 5 to String\n");
+	print("Converting 5 to String");
 	let x = 5 -> String;
-	out.write(x);
-	out.write(" : ");
-	out.write(String.new(typeof(x)));
-	out.write("\n\n");
+	print(x, " : ", String.new(typeof(x)), "\n");
 
-	out.write("Converting \"99\" to Integer\n");
+	print("Converting '99' to Integer");
 	let y = "99" -> Integer;
-	out.write(String.new(y));
-	out.write(" : ");
-	out.write(String.new(typeof(y)));
-	out.write("\n");
+	print(String.new(y), " : ", String.new(typeof(y)));
 }

@@ -243,11 +243,18 @@ class FunctionCall(VioletASTBase):
 
 		args = self.args
 		# print(obj, args)
-
-		if isinstance(obj, PyMethodType):
-			value = obj(*[o.eval(runner).value0 for o in args])
+		# print([o.eval(runner) for o in args])
+		transformed = [o.eval(runner) for o in args]
+		viobj = getattr(obj, '__self__', None)
+		if viobj is not None:
+			viobj = issubclass(viobj, objects.Object)
+		# print(viobj, isinstance(obj, objects.Function), hasattr(obj, '_0_identifies_as_violet'))
+		if not viobj and not isinstance(obj, objects.Function) and not hasattr(obj, '_0_identifies_as_violet'):
+			# print(transformed)
+			value = obj(*transformed)
 		else:
-			value = obj([o.eval(runner) for o in args], runner=runner)
+			# print(transformed)
+			value = obj(transformed, runner=runner)
 		# print(value)
 		return value
 
@@ -453,7 +460,5 @@ class BiOperatorExpr(VioletASTBase):
 	def eval(self, runner):
 		left = runner.get_var(self.left) if isinstance(self.left, Identifier) else self.left.eval(runner)
 		right = runner.get_var(self.right) if isinstance(self.right, Identifier) else self.right.eval(runner)
-		# print(left, self.op, right)
 
 		return getattr(self, '_' + self.op.__class__.__name__)(left, right)
-		# print(ret)

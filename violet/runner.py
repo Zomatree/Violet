@@ -214,7 +214,7 @@ class Runner:
 
 	def exec_module_body(self, stmt_list):
 		for statement in stmt_list:
-			# print("executing", statement)
+			# print("executing", statement.__class__.__name__, getattr(statement, 'name', None))
 
 			try:
 				if isinstance(statement, ast.Import):
@@ -234,6 +234,7 @@ class Runner:
 
 	def exec_function_body(self, body, func):
 		for statement in body:
+			# print("executing", statement.__class__.__name__, getattr(statement, 'name', None))
 			if func._return_flag:
 				break
 			self.lineno += 1

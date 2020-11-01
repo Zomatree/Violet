@@ -1,12 +1,10 @@
-import { out } from std.io;
+import { print } from std;
 
 fun main(argv: List[String]) {
 	let x = nil;
 	let y = "not nil";
 
-	out.write(String.new(x ?? y));
-	out.write("\n");
+	print(String.new(x ?? y));
 
-	out.write(String.new(x ?? x));
-	out.write("\n");
+	print(String.new(x ?? x));
 }

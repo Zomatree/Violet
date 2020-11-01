@@ -1,6 +1,6 @@
 import inspect
 from violet.errors import *
-from violet._util import IndexableNamespace
+from violet._util import IndexableNamespace, identify_as_violet
 
 # __all__ = ['Module']
 
@@ -174,8 +174,9 @@ class Boolean(Primitive):
 		return repr(self.value0).lower()
 
 class String(Primitive):
+	@identify_as_violet()
 	@classmethod
-	def new(cls, value, *, runner):
+	def new(cls, value, *, runner=None):
 		if len(value) > 1:
 			raise Exception("too many arguments for function call (expected 1 argument)")
 		return cls(str(value[0]))
@@ -207,7 +208,7 @@ class Integer(Primitive):
 	def _operator_times(self, other):
 		if not self.ensure_type(other):
 			raise Exception(f'operator* not applicable between types {self.__class__.__name__!r} and {other.__class__.__name__!r}')
-		return self.__class__(self.value0 * self.value0)
+		return self.__class__(self.value0 * other.value0)
 
 	def _operator_divide(self, other):
 		if not self.ensure_type(other):

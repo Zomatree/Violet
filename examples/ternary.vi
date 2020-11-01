@@ -1,30 +1,27 @@
-import { out } from std.io;
+import { print } from std;
 
 fun main(argv: List[String]) {
 	let const x = true;
 	let const y = x ? 1 : 2;
-	out.write(String.new(y));
-	out.write("\n");
+	print(String.new(y));
 
 	// comment test
 
 	let z = false ? false ? 0 : 1 : 2;
-	out.write(String.new(z));
+	print(String.new(z));
 	z = true ? false ? 0 : 1 : 2;
-	out.write(String.new(z));
+	print(String.new(z));
 	z = false ? true ? 0 : 1 : 2;
-	out.write(String.new(z));
+	print(String.new(z));
 	z = true ? true ? 0 : 1 : 2;
-	out.write(String.new(z));
-	out.write("\n\n");
+	print(String.new(z));
 
 	let a = false ? 3 : false ? 4 : 5;
-	out.write(String.new(a));
+	print(String.new(a));
 	a = true ? 3 : false ? 4 : 5;
-	out.write(String.new(a));
+	print(String.new(a));
 	a = false ? 3 : true ? 4 : 5;
-	out.write(String.new(a));
+	print(String.new(a));
 	a = true ? 3 : true ? 4 : 5;
-	out.write(String.new(a));
-	out.write("\n\n");
+	print(String.new(a));
 }

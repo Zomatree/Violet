@@ -1,26 +1,26 @@
-import { io } from std;
+import { print } from std;
 
 fun test(i: Integer, j: Integer): Boolean {
 	return i <= j;
 }
 
 fun main(argv: List[String]) {
-	let x = "if?\n";
-	io.out.write(x);
+	let x = "if?";
+	print(x);
 	if (test(1, 0)) {
-		let y = "IF!\n";
-		io.out.write(y);
+		let y = "IF!";
+		print(y);
 	}
 	elseif (test(1, 1)) {
-		let y = "ELSEIF!\n";
-		io.out.write(y);
+		let y = "ELSEIF!";
+		print(y);
 	}
 	elseif (test(1, 2)) {
-		let y = "ELSEIF2!\n";
-		io.out.write(y);
+		let y = "ELSEIF2!";
+		print(y);
 	}
 	else {
-		let y = "ELSE!\n";
-		io.out.write(y);
+		let y = "ELSE!";
+		print(y);
 	}
 }
