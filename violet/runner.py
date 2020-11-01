@@ -7,6 +7,7 @@ import pprint
 import sys
 import types
 import contextlib
+import subprocess
 
 from violet.lexer import lexer
 from violet.parser import parser
@@ -107,13 +108,14 @@ class Scope:
 			self.vars[identifier] = value
 
 class Runner:
-	def __init__(self, code, *, debug=False):
+	def __init__(self, code, *, debug=False, write_ast=False):
 		self.debug = debug
 		self.global_scope = gl = Scope(self)
 		self.scopes = {gl.hash: gl}
 		self.active_scope = gl.hash
 		self.code = code
 		self.lineno = 0
+		self.write_ast = write_ast
 
 	@staticmethod
 	def wrap_py_type(value):
@@ -155,7 +157,10 @@ class Runner:
 		# print(self.get_current_scope())
 		# pprint.pprint(self.scopes)
 		# return self
-		# print(module, file=sys.stdout)
+		if self.write_ast:
+			with open("test_out.py", "w") as f:
+				print(module, file=f)
+			subprocess.run(["black", "test_out.py"], capture_output=True)
 		try:
 			main = self.get_current_scope().get_var(ast.Identifier('main', -1))
 		except VarNotFound:

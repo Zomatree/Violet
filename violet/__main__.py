@@ -6,15 +6,19 @@ import traceback
 from violet.runner import Runner
 
 parse = argparse.ArgumentParser()
-parse.add_argument('file', nargs='?')
-parse.add_argument('-v', '--verbose', action='store_true')
-parse.add_argument('--test', action='store_true')
+parse.add_argument('file', nargs='?', help='The file to interpret.')
+parse.add_argument('-a', '--ast', help='Write module AST to debug file', action='store_true')
+parse.add_argument('-t', '--test', action='store_true', help='Run the tests')
+parse.add_argument('-v', '--verbose', action='store_true', help='Use python-style errors')
 
 if __name__ == '__main__':
 	args = parse.parse_args(sys.argv[1:])
+	if args.test and args.ast:
+		print("FATAL: Cannot combine arguments '--ast' and '--test'", file=sys.stderr)
+		sys.exit(64)
 
 	if not args.test:
-		Runner.open(args.file, debug=args.verbose).run()
+		Runner.open(args.file, debug=args.verbose, write_ast=args.ast).run()
 	else:
 		failed = 0
 		total = 0
