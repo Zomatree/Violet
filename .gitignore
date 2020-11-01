@@ -4,3 +4,5 @@ parsetab.out
 **/*.sublime-workspace
 test_out.py
 thing.vi
+.vscode/
+test.vi
