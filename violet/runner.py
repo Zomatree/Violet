@@ -153,7 +153,7 @@ class Runner:
 			sys.exit(9)
 		except StatementError as e:
 			if self.debug:
-				raise e
+				raise
 			print(f"ERROR:{e.stmt.lineno}: {e}")
 			sys.exit(1)
 		# print(self.get_current_scope())
@@ -287,12 +287,21 @@ class Runner:
 
 			else:
 				for identifier in stmt.importing:
-					try:
-						var = module.get_current_scope().get_var(identifier)
-					except Exception as e:
-						raise StatementError(stmt, f'failed to import {identifier.name!r} from {name}')
+					if identifier.name == "*":
+						vars = module.get_current_scope().vars
+						scope = self.get_current_scope()
+						for ident, value in vars.items():
+							scope.set_var(ident, value)
+
+						break
+
 					else:
-						self.get_current_scope().set_var(identifier, var)
+						try:
+							var = module.get_current_scope().get_var(identifier)
+						except Exception as e:
+							raise StatementError(stmt, f'failed to import {identifier.name!r} from {name}')
+						else:
+							self.get_current_scope().set_var(identifier, var)
 
 		else:
 			try:

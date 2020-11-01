@@ -147,7 +147,11 @@ class Import(VioletASTBase):
 
 	def __init__(self, prod):
 		super().__init__(prod)
-		self.importing = prod.name_list
+		self.importing = prod[2]
+
+		if self.importing == "*":
+			self.importing = [Identifier(name="*", lineno=prod.lineno)]
+
 		self.from_module = prod.identity
 
 class Assignment(VioletASTBase):
