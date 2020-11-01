@@ -16,7 +16,8 @@ _OPS = {
 	'greater': '>',
 	'greater_equal': '>=',
 	'less': '<',
-	'less_equal': '<='
+	'less_equal': '<=',
+	'cast': '->'
 }
 
 class _Meta(type):
@@ -53,6 +54,9 @@ class Object(metaclass=_Meta):
 
 	def __mod__(self, other):
 		return self.get_special_method('%')(other)
+
+	def cast0(self, type):
+		return self.get_special_method('->')(type)
 
 	def get_special_method(self, name):
 		# print(name)
@@ -176,6 +180,19 @@ class String(Primitive):
 			raise Exception("too many arguments for function call (expected 1 argument)")
 		return cls(str(value[0]))
 
+	def _operator_cast(self, type):
+		if type is String:
+			return self
+		elif type is Boolean:
+			return Boolean(len(self.value0) != 0)
+		elif type is Integer:
+			try:
+				return Integer(int(self.value0))
+			except ValueError:
+				raise Exception(f"String value cannot be cast to Integer")
+		else:
+			raise Exception(f"cannot cast {self.__class__.__name__!r} to type {type.__name__!r}")
+
 class Integer(Primitive):
 	def _operator_plus(self, other):
 		if not self.ensure_type(other):
@@ -201,6 +218,16 @@ class Integer(Primitive):
 		if not self.ensure_type(other):
 			raise Exception(f'operator/ not applicable between types {self.__class__.__name__!r} and {other.__class__.__name__!r}')
 		return self.__class__(self.value0 % other.value0)
+
+	def _operator_cast(self, type):
+		if type is String:
+			return String(str(self.value0))
+		elif type is Boolean:
+			return Boolean(self.value0 != 0)
+		elif type is Integer:
+			return self
+		else:
+			raise Exception(f"cannot cast {self.__class__.__name__!r} to type {type.__name__!r}")
 
 class List(Primitive):
 	@classmethod

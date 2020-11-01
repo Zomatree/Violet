@@ -110,6 +110,10 @@ class VioletParser(Parser):
 	def expr(self, p):
 		return p.bool
 
+	@_("expr CAST typ")
+	def expr(self, p):
+		return ast.Cast(p)
+
 	@_("expr EQ expr")
 	def bool(self, p):
 		# print(*p)

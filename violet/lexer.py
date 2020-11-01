@@ -3,6 +3,8 @@ from sly import Lexer
 
 class VioletLexer(Lexer):
 	tokens = {
+		CAST,
+
 		PLUS,
 		MINUS,
 		MULTIPLY,
@@ -53,6 +55,8 @@ class VioletLexer(Lexer):
 		DECIMAL,
 		STRING,
 	}
+
+	CAST = '->'
 
 	PLUS = r'\+'
 	MINUS = r'-'

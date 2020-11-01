@@ -232,6 +232,19 @@ class Return(VioletASTBase):
 	def __init__(self, expr):
 		self.expr = expr or objects.Void()
 
+class Cast(VioletASTBase):
+	__slots__ = 'expr', 'type'
+
+	def __init__(self, prod):
+		super().__init__(prod)
+		self.expr = prod.expr
+		self.type = prod.typ
+
+	def eval(self, runner):
+		obj = self.expr.eval(runner)
+		typ = self.type.eval(runner)
+		return obj.cast0(typ)
+
 class Control(VioletASTBase):
 	def eval(self, runner, func):
 		pass
