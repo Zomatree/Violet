@@ -5,6 +5,8 @@ class VioletLexer(Lexer):
 	tokens = {
 		CAST,
 
+		LAMBDA_SEP,
+
 		PLUS,
 		MINUS,
 		MULTIPLY,
@@ -58,6 +60,8 @@ class VioletLexer(Lexer):
 	ignore_comment = r"//.*"
 
 	CAST = '->'
+
+	LAMBDA_SEP = r"=>"
 
 	PLUS = r'\+'
 	MINUS = r'-'
