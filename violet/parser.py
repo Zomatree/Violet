@@ -23,7 +23,7 @@ class VioletParser(Parser):
 
 	precedence = (
 		('left', "tern"),
-		('nonassoc', EQ, NE, GT, GE, LT, LE),
+		('nonassoc', EQ, NE, GT, GE, LT, LE, "lambda"),
 		('left', DQMARK),
 		('left', MODULUS),
 		('left', DIVIDE, MULTIPLY),
@@ -118,6 +118,10 @@ class VioletParser(Parser):
 	@_("expr CAST typ")
 	def expr(self, p):
 		return ast.Cast(p)
+
+	@_("lambda_expr")
+	def expr(self, p):
+		return p.lambda_expr
 
 	@_("expr EQ expr")
 	def bool(self, p):
@@ -317,6 +321,10 @@ class VioletParser(Parser):
 	@_("expr DQMARK expr")
 	def expr(self, p):
 		return ast.NilOrElse(p)
+
+	@_("param_list LAMBDA_SEP expr %prec lambda")
+	def lambda_expr(self, p):
+		return ast.Lambda(p)	
 
 	def error(self, t):
 		if not t:
