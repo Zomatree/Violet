@@ -221,9 +221,22 @@ class Function(VioletASTBase):
 		self.params = getattr(prod, 'param_list', [])
 		self.ret_value = getattr(prod, 'typ', None)
 		self.body = prod.block
+		self.lineno = prod.lineno
 
 	def eval(self, runner):
-		return objects.Function(name, params, ret_value, body)
+		return objects.Function(self.name, self.params, self.ret_value, self.body, self.lineno)
+
+class Lambda(VioletASTBase):
+	__slots__ = ("params", "body")
+
+	def __init__(self, prod):
+		super().__init__(prod)
+		self.params = getattr(prod, "param_list", [])
+		self.body = prod.expr
+		self.lineno = prod.lineno
+
+	def eval(self, runner):
+		return objects.Lambda(self.params, self.body, self.lineno)
 
 class FunctionCall(VioletASTBase):
 	__slots__ = ('name', 'args')

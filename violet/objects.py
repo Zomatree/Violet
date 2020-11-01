@@ -289,3 +289,17 @@ class Function(Object):
 			runner.exec_function_body(self.body, self)
 			# print("returning type", self._return)
 			return self.reset_state()
+
+class Lambda(Function):
+	def __repr__(self):
+		return "Lambda()"
+
+	def __init__(self, params, body, lineno):
+		from violet.vast import Return
+
+		self.params = params
+		self.body = [Return(body)]
+		self.lineno = lineno
+		self._return = None
+		self._return_flag = None
+		self.return_type = None		

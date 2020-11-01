@@ -5,3 +5,5 @@ parsetab.out
 .idea/
 test_out.py
 thing.vi
+.vscode/
+test.vi

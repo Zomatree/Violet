@@ -392,5 +392,6 @@ class Runner:
 
 	def _exec_function_spawn(self, stmt):
 		# print("spawn function")
-		self.get_current_scope().set_var(stmt.name, objects.Function(stmt.name, stmt.params, stmt.ret_value, stmt.body, stmt.lineno))
+
+		self.get_current_scope().set_var(stmt.name, stmt.eval(self))
 	
