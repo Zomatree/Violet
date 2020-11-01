@@ -149,7 +149,7 @@ class Import(VioletASTBase):
 		super().__init__(prod)
 		self.importing = prod.name_list
 		self.from_module = prod.identity
-		
+
 class Assignment(VioletASTBase):
 	__slots__ = ('global_scope', 'constant', 'identifier', 'type', 'expression')
 
