@@ -55,6 +55,7 @@ class VioletLexer(Lexer):
 		DECIMAL,
 		STRING,
 	}
+	ignore_comment = r"//.*"
 
 	CAST = '->'
 
@@ -113,7 +114,6 @@ class VioletLexer(Lexer):
 	STRING = r'".*?(?<!\\)(?:\\\\)*?"'
 
 	ignore = ' \t'
-	ignore_comment = r"//.*"
 
 	ignore_newline = r'\n+'
 	def ignore_newline(self, t):
