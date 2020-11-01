@@ -292,10 +292,11 @@ class Function(Object):
 
 class Lambda(Function):
 	def __repr__(self):
-		return "Lambda<>"
+		return "Lambda()"
 
 	def __init__(self, params, body, lineno):
-		from violet.vast import Return, Primitive
+		from violet.vast import Return
+
 		self.params = params
 		self.body = [Return(body)]
 		self.lineno = lineno
