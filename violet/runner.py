@@ -310,6 +310,19 @@ class Runner:
 				raise StatementError(stmt, f'module {name!r} does not exist')
 			else:
 				for iport in stmt.importing:
+					if iport.name == "*":
+						if not hasattr(module, "__all__"):
+							importables = (x for x in dir(module) if not x.startswith("_"))
+
+						else:
+							importables = module.__all__
+
+						scope = self.get_current_scope()
+						for vname in importables:
+							scope.set_var(ast.Identifier(vname, stmt.lineno), getattr(module, vname))
+
+						break
+
 					if not hasattr(module, iport.name):
 						raise StatementError(stmt, f'failed to import {iport.name!r} from {name!r}')
 					else:
