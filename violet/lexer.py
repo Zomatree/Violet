@@ -33,6 +33,7 @@ class VioletLexer(Lexer):
 		BRACK_OPEN,
 		BRACK_CLOSE,
 
+		RANGE,
 		ATTR,
 		COMMA,
 
@@ -53,6 +54,8 @@ class VioletLexer(Lexer):
 		IF,
 		ELSEIF,
 		ELSE,
+		FOR,
+		IN,
 
 		DECIMAL,
 		STRING,
@@ -89,6 +92,7 @@ class VioletLexer(Lexer):
 	BRACK_OPEN = r'\['
 	BRACK_CLOSE = r'\]'
 
+	RANGE = r'\.\.'
 	ATTR = r'\.'
 	COMMA = ','
 
@@ -110,6 +114,8 @@ class VioletLexer(Lexer):
 	IDENTIFIER['if'] = IF
 	IDENTIFIER['elseif'] = ELSEIF
 	IDENTIFIER['else'] = ELSE
+	IDENTIFIER['for'] = FOR
+	IDENTIFIER['in'] = IN
 
 	# BINARY = r'0b[01]+'
 	DECIMAL = r'[0-9]+'

@@ -322,7 +322,25 @@ class IfControl(Control):
 			# print("ELSE")
 
 class ForControl(Control):
-	pass  # todo
+	__slots__ = 'name', 'expr', 'body'
+
+	def __init__(self, prod):
+		super().__init__(prod)
+		# @_("FOR PAREN_OPEN name IN expr PAREN_CLOSE block")
+		self.name = prod.name
+		self.expr = prod.expr
+		self.body = prod.block
+
+	def eval(self, runner, func):
+		it = self.expr.eval(runner)
+		try:
+			it = iter(it)
+		except TypeError:
+			raise Exception(f"cannot loop over non-iterable type {it.__class__.__name__!r}")
+		for i in it:
+			with runner.new_scope():
+				runner.get_current_scope().set_var(self.name, i, const=True)
+				runner.exec_function_body(self.body, func)
 
 class WhileControl(Control):
 	pass  # todo
@@ -413,6 +431,9 @@ class Divide(Operator):
 class Modulus(Operator):
 	pass
 
+class Range(Operator):
+	pass
+
 # equality
 
 class EqualTo(Operator):
@@ -473,6 +494,9 @@ class BiOperatorExpr(VioletASTBase):
 
 	def _LessOrEqual(self, l, r):
 		return l <= r
+
+	def _Range(self, l, r):
+		return l.get_special_method('..')(r)
 
 	def eval(self, runner):
 		left = runner.get_var(self.left) if isinstance(self.left, Identifier) else self.left.eval(runner)

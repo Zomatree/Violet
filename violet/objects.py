@@ -17,7 +17,8 @@ _OPS = {
 	'greater_equal': '>=',
 	'less': '<',
 	'less_equal': '<=',
-	'cast': '->'
+	'cast': '->',
+	'range': '..'
 }
 
 class _Meta(type):
@@ -60,7 +61,7 @@ class Object(metaclass=_Meta):
 
 	def get_special_method(self, name):
 		# print(name)
-		# sprint(dir(self))
+		# print(dir(self))
 		meth = getattr(self, 'operator'+name, None)
 		if meth is None:
 			raise Exception(f'operator{name} not available on type {self.__class__.__name__!r}')
@@ -230,7 +231,16 @@ class Integer(Primitive):
 		else:
 			raise Exception(f"cannot cast {self.__class__.__name__!r} to type {type.__name__!r}")
 
+	def _operator_range(self, other):
+		if not self.ensure_type(other):
+			raise Exception(f'operator.. not applicable between types {self.__class__.__name__!r} and {other.__class__.__name__!r}')
+		l = [self.__class__(i) for i in range(self.value0, other.value0)]
+		return List(l)
+
 class List(Primitive):
+	def __iter__(self):
+		return self.value0.__iter__()
+
 	@classmethod
 	def from_value0(cls, value, *, runner):
 		if not value:  # empty expr list?

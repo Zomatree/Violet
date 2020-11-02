@@ -1,0 +1,12 @@
+import { print } from std;
+
+fun main(_: List[String]) {
+	for (i in 0..5) {
+		print(String.new(i));
+	}
+
+	let x = ["h", "e", "l", "l", "o"];
+	for (j in x) {
+		print(j);
+	}
+}

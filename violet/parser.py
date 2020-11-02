@@ -23,7 +23,7 @@ class VioletParser(Parser):
 
 	precedence = (
 		('left', "tern"),
-		('nonassoc', EQ, NE, GT, GE, LT, LE, "lambda"),
+		('nonassoc', EQ, NE, GT, GE, LT, LE, "lambda", RANGE),
 		('left', DQMARK),
 		('left', MODULUS),
 		('left', DIVIDE, MULTIPLY),
@@ -86,6 +86,10 @@ class VioletParser(Parser):
 	@_("func_call")
 	def expr(self, p):
 		return p.func_call
+
+	@_("expr RANGE expr")
+	def expr(self, p):
+		return ast.BiOperatorExpr(p.expr0, ast.Range(), p.expr1)
 
 	@_("expr PLUS expr")
 	def expr(self, p):
@@ -300,6 +304,10 @@ class VioletParser(Parser):
 	def control(self, p):
 		return ast.IfControl(p)
 
+	@_("for_stmt")
+	def control(self, p):
+		return p[0]
+
 	@_("elseif_chain elseif_stmt")
 	@_("elseif_stmt")
 	def elseif_chain(self, p):
@@ -318,6 +326,10 @@ class VioletParser(Parser):
 	@_("ELSE block")
 	def else_stmt(self, p):
 		return ast.Else(p)
+
+	@_("FOR PAREN_OPEN name IN expr PAREN_CLOSE block")
+	def for_stmt(self, p):
+		return ast.ForControl(p)
 
 	@_("expr DQMARK expr")
 	def expr(self, p):
