@@ -224,6 +224,7 @@ class VioletParser(Parser):
 		return ret
 
 	@_("IMPORT BLOCK_OPEN name_list BLOCK_CLOSE FROM identity")
+	@_("IMPORT BLOCK_OPEN MULTIPLY BLOCK_CLOSE FROM identity")
 	def iport(self, p):
 		return ast.Import(p)
 

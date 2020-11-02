@@ -2,6 +2,7 @@
 parsetab.out
 **/*.sublime-project
 **/*.sublime-workspace
+.idea/
 test_out.py
 thing.vi
 .vscode/

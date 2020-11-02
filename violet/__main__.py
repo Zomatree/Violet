@@ -18,7 +18,9 @@ if __name__ == '__main__':
 		sys.exit(64)
 
 	if not args.test:
-		Runner.open(args.file, debug=args.verbose, write_ast=args.ast).run()
+		runner = Runner.open(args.file, debug=args.verbose, write_ast=args.ast)
+		runner.interpret()
+		runner.run()
 	else:
 		failed = 0
 		total = 0
