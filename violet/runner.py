@@ -163,12 +163,13 @@ class Runner:
 			with open("test_out.py", "w") as f:
 				print(module, file=f)
 			subprocess.run(["black", "test_out.py"], capture_output=True)
+		return self
 
 	def run(self):
 		try:
 			main = self.get_current_scope().get_var(ast.Identifier('main', -1))
 		except VarNotFound:
-			print(f"ERROR: missing entry point function 'main' in file {self.filename}", file=sys.stderr)
+			print(f"FATAL: missing entry point function 'main' in file {self.filename}", file=sys.stderr)
 			sys.exit(1)
 		argv = ast.Primitive(
 			IndexableNamespace(

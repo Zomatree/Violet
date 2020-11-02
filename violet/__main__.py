@@ -28,7 +28,7 @@ if __name__ == '__main__':
 			total += 1
 			print("\nTEST:", file)
 			try:
-				Runner.open(file, debug=args.verbose).run()
+				Runner.open(file, debug=args.verbose).interpret().run()
 			except SystemExit:
 				failed += 1
 			except BaseException:
