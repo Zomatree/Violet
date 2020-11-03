@@ -8,10 +8,10 @@ Sample "Hello World" example:
 
 .. code-block:: none
 
-   import { io } from std;
+   import { print } from std;
 
    fun main(argv: List[String]) {
-       let a = io.out.write("Hello, world!\n");
+       print("Hello, world!");
    };
 
 Other examples can be found in the ``examples/`` directory.
