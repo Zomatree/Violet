@@ -226,6 +226,12 @@ class Function(VioletASTBase):
 	def eval(self, runner):
 		return objects.Function(self.name, self.params, self.ret_value, self.body, self.lineno)
 
+class Break(VioletASTBase):
+	pass
+
+class Continue(VioletASTBase):
+	pass
+
 class Lambda(VioletASTBase):
 	__slots__ = ("params", "body")
 
@@ -271,7 +277,11 @@ class FunctionCall(VioletASTBase):
 			value = obj(*transformed)
 		else:
 			# print(transformed)
-			value = obj(transformed, runner=runner)
+			if isinstance(obj, objects.Function):
+				obj(transformed, runner=runner)
+				value = obj.reset_state()
+			else:
+				value = obj(transformed, runner=runner)
 		# print(value)
 		return value
 
@@ -340,7 +350,12 @@ class ForControl(Control):
 		for i in it:
 			with runner.new_scope():
 				runner.get_current_scope().set_var(self.name, i, const=True)
-				runner.exec_function_body(self.body, func)
+				try:
+					runner.exec_function_body(self.body, func)
+				except BreakExit:
+					break
+				except ContinueExit:
+					continue
 
 class WhileControl(Control):
 	pass  # todo
@@ -380,7 +395,7 @@ class If(Control):
 		expr = self.expr.eval(runner)
 		# print(self.__class__.__name__, "->", self.expr)
 		if not isinstance(expr, objects.Boolean):
-			raise TypeCheckerFailed(expr, objects.Boolean)
+			raise Exception(f"unexpected type {expr.__class__.__name__!r} (expected \"Boolean\")")
 		if expr:
 			with runner.new_scope():
 				runner.exec_function_body(self.body, func)

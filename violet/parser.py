@@ -48,6 +48,8 @@ class VioletParser(Parser):
 	# @_("func_call EOS")
 	@_("func")
 	@_("return_stmt EOS")
+	@_("break_stmt EOS")
+	@_("continue_stmt EOS")
 	@_("control")
 	def stmt(self, p):
 		return p[0]
@@ -294,6 +296,14 @@ class VioletParser(Parser):
 	@_("RETURN")
 	def return_stmt(self, p):
 		return ast.Return(getanyattr(p, 'expr'))
+
+	@_("BREAK")
+	def break_stmt(self, p):
+		return ast.Break(p)
+
+	@_("CONTINUE")
+	def continue_stmt(self, p):
+		return ast.Continue(p)
 
 	# control flow
 

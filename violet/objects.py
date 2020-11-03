@@ -296,9 +296,14 @@ class Function(Object):
 				param.type.type_check(value, runner)
 				
 				runner.get_current_scope().set_var(param.name, value)
-			runner.exec_function_body(self.body, self)
-			# print("returning type", self._return)
-			return self.reset_state()
+			try:
+				runner.exec_function_body(self.body, self)
+			except ReturnExit:
+				pass
+			except BreakExit:
+				raise Exception("unexpected \"break\" statement at this time")
+			except ContinueExit:
+				raise Exception("unexpected \"continue\" statement at this time")
 
 class Lambda(Function):
 	def __repr__(self):

@@ -13,8 +13,8 @@ from violet.lexer import lexer
 from violet.objects import Void
 from violet.parser import parser
 from violet import vast as ast
-from violet import errors
-from violet.errors import StatementError
+from violet.errors import *
+from violet.errors import _Exit
 from violet import objects
 from violet._util import IndexableNamespace
 
@@ -171,6 +171,7 @@ class Runner:
 		except VarNotFound:
 			print(f"FATAL: missing entry point function 'main' in file {self.filename}", file=sys.stderr)
 			sys.exit(1)
+
 		argv = ast.Primitive(
 			IndexableNamespace(
 				value=[
@@ -188,16 +189,22 @@ class Runner:
 		).eval(self)
 
 		try:
+			# print("running")
 			with self.new_scope():
-				main([argv], runner=self)
-		except (StatementError) as e:
+				# print("enter")
+				main([argv], runner=self)	
+				# print("exit")
+			# print("ran")
+		except StatementError as e:
+			# print("STATEMENTERROR")
 			if self.debug:
-				raise e
+				raise
 			print(f"ERROR:{e.stmt.lineno}:", e, file=sys.stderr)
 			sys.exit(1)
 		except Exception as e:
+			# print("EXCEPTION")
 			if self.debug:
-				raise e
+				raise
 			print(f"ERROR:{main.lineno}:", e, file=sys.stderr)
 			sys.exit(1)
 
@@ -219,7 +226,7 @@ class Runner:
 
 	def exec_module_body(self, stmt_list):
 		for statement in stmt_list:
-			# print("executing", statement.__class__.__name__, getattr(statement, 'name', None))
+			# print("MODULE: executing", statement.__class__.__name__, getattr(statement, 'name', None))
 
 			try:
 				if isinstance(statement, ast.Import):
@@ -233,30 +240,34 @@ class Runner:
 				else:
 					raise StatementError(statement, f'unexpected {statement.__class__.__name__!r} statement')
 			except Exception as e:
-				if isinstance(e, StatementError):
+				if isinstance(e, (StatementError, _Exit)):
 					raise
 				raise StatementError(statement, str(e))
 
 	def exec_function_body(self, body, func):
 		for statement in body:
-			# print("executing", statement.__class__.__name__, getattr(statement, 'name', None))
-			if func._return_flag:
-				break
-			self.lineno += 1
-			# print("executing", statement.__class__.__name__)
-			if isinstance(statement, ast.Assignment):
-				self._exec_assignment(statement)
-			elif isinstance(statement, ast.Reassignment):
-				self._exec_assignment(statement, True)
-			elif isinstance(statement, ast.Return):
-				self._exec_return(statement, func)
-				func._return_flag = True
-			elif isinstance(statement, ast.FunctionCall):
-				statement.eval(self)
-			elif isinstance(statement, ast.Control):
-				statement.eval(self, func)
-			else:
-				raise StatementError(statement, f'unexpected {statement.__class__.__name__!r} statement')
+			# print("FUNCTION: executing", statement.__class__.__name__, getattr(statement, 'name', None))
+			try:
+				if isinstance(statement, ast.Assignment):
+					self._exec_assignment(statement)
+				elif isinstance(statement, ast.Reassignment):
+					self._exec_assignment(statement, True)
+				elif isinstance(statement, ast.Return):
+					self._exec_return(statement, func)
+				elif isinstance(statement, ast.Break):
+					raise BreakExit
+				elif isinstance(statement, ast.Continue):
+					raise ContinueExit
+				elif isinstance(statement, ast.FunctionCall):
+					statement.eval(self)
+				elif isinstance(statement, ast.Control):
+					statement.eval(self, func)
+				else:
+					raise StatementError(statement, f'unexpected {statement.__class__.__name__!r} statement')
+			except Exception as e:
+				if isinstance(e, (StatementError, _Exit)):
+					raise
+				raise StatementError(statement, str(e))
 
 	def exec_module(self, module):
 		self.exec_module_body(module.body)
@@ -380,7 +391,7 @@ class Runner:
 	def _exec_return(self, statement, func):
 		# print(statement)
 		expr = statement.expr
-		if expr is None:
+		if expr is None or isinstance(expr, Void):
 			ret = Void()
 		else:
 			ret = expr.eval(self)
@@ -390,6 +401,7 @@ class Runner:
 			func.return_type = ret.get_type()
 		func.return_type.type_check(ret, self)
 		func._return = ret
+		raise ReturnExit
 
 	def _exec_function_spawn(self, stmt):
 		# print("spawn function")

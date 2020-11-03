@@ -45,7 +45,10 @@ class VioletLexer(Lexer):
 		FROM,
 		CONST,
 		FUN,
+
 		RETURN,
+		BREAK,
+		CONTINUE,
 
 		TRUE,
 		FALSE,
@@ -105,7 +108,10 @@ class VioletLexer(Lexer):
 	IDENTIFIER['from'] = FROM
 	IDENTIFIER['const'] = CONST
 	IDENTIFIER['fun'] = FUN
+
 	IDENTIFIER['return'] = RETURN
+	IDENTIFIER['break'] = BREAK
+	IDENTIFIER['continue'] = CONTINUE
 
 	IDENTIFIER['true'] = TRUE
 	IDENTIFIER['false'] = FALSE
