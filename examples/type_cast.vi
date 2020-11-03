@@ -1,6 +1,6 @@
 import { print, typeof } from std;
 
-fun main(argv: List[String]) {
+fun main() {
 	print("Converting 5 to String");
 	let x = 5 -> String;
 	print(x, " : ", String.new(typeof(x)), "\n");

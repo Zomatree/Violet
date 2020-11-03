@@ -1,6 +1,6 @@
 import { print } from std;
 
-fun main(_: List[String]) {
+fun main() {
 	let x = ["h", "e", "l", "l", "o"];
 	for (j in x) {
 		print(j);

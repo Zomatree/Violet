@@ -165,6 +165,11 @@ class Runner:
 			subprocess.run(["black", "test_out.py"], capture_output=True)
 		return self
 
+	@property
+	def argv(self):
+		# TODO: sys.argv
+		return ast.Primitive(IndexableNamespace(value=[ast.Primitive(IndexableNamespace(value='"a"',lineno=main.lineno),objects.String)],lineno=main.lineno),objects.List).eval(self)
+
 	def run(self):
 		try:
 			main = self.get_current_scope().get_var(ast.Identifier('main', -1))
@@ -172,43 +177,23 @@ class Runner:
 			print(f"FATAL: missing entry point function 'main' in file {self.filename}", file=sys.stderr)
 			sys.exit(1)
 
-		argv = ast.Primitive(
-			IndexableNamespace(
-				value=[
-					ast.Primitive(
-						IndexableNamespace(
-							value='"a"',
-							lineno=main.lineno
-						),
-						objects.String
-					)
-				],
-				lineno=main.lineno
-			),
-			objects.List
-		).eval(self)
-
 		try:
-			# print("running")
 			with self.new_scope():
-				# print("enter")
-				main([argv], runner=self)	
-				# print("exit")
-			# print("ran")
+				# print(main, dir(main))
+				if len(main.params) == 1:
+					main([self.argv], runner=self)	
+				else:
+					main([], runner=self)
 		except StatementError as e:
-			# print("STATEMENTERROR")
 			if self.debug:
 				raise
-			print(f"ERROR:{e.stmt.lineno}:", e, file=sys.stderr)
+			print(f"ERROR:{e.stmt.lineno}:", e)
 			sys.exit(1)
 		except Exception as e:
-			# print("EXCEPTION")
 			if self.debug:
 				raise
-			print(f"ERROR:{main.lineno}:", e, file=sys.stderr)
+			print(f"ERROR:{main.lineno}:", e)
 			sys.exit(1)
-
-		# pprint.pprint(self.scopes)
 
 	@contextlib.contextmanager
 	def new_scope(self):

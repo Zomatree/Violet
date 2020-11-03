@@ -1,6 +1,6 @@
 import { print } from std;
 
-fun main(argv: List[String]): Void {
+fun main() {
 	let x = 1 + 2;
 	print("1 + 2 = ", String.new(x));
 

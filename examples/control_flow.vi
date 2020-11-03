@@ -4,7 +4,7 @@ fun test(i: Integer, j: Integer): Boolean {
 	return i <= j;
 }
 
-fun main(argv: List[String]) {
+fun main() {
 	let x = "if?";
 	print(x);
 	if (test(1, 0)) {

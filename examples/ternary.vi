@@ -1,6 +1,6 @@
 import { print } from std;
 
-fun main(argv: List[String]) {
+fun main() {
 	let const x = true;
 	let const y = x ? 1 : 2;
 	print(String.new(y));

@@ -1,6 +1,6 @@
 import { print } from std;
 
-fun main(argv: List[String]) {
+fun main() {
 	let x = nil;
 	let y = "not nil";
 
