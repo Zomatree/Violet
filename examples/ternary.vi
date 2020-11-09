@@ -3,25 +3,25 @@ import { print } from std;
 fun main() {
 	let const x = true;
 	let const y = x ? 1 : 2;
-	print(String.new(y));
+	print(y -> String);
 
 	// comment test
 
 	let z = false ? false ? 0 : 1 : 2;
-	print(String.new(z));
+	print(z -> String);
 	z = true ? false ? 0 : 1 : 2;
-	print(String.new(z));
+	print(z -> String);
 	z = false ? true ? 0 : 1 : 2;
-	print(String.new(z));
+	print(z -> String);
 	z = true ? true ? 0 : 1 : 2;
-	print(String.new(z));
+	print(z -> String);
 
 	let a = false ? 3 : false ? 4 : 5;
-	print(String.new(a));
+	print(a -> String);
 	a = true ? 3 : false ? 4 : 5;
-	print(String.new(a));
+	print(a -> String);
 	a = false ? 3 : true ? 4 : 5;
-	print(String.new(a));
+	print(a -> String);
 	a = true ? 3 : true ? 4 : 5;
-	print(String.new(a));
+	print(a -> String);
 }

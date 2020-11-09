@@ -3,5 +3,5 @@ import { print } from std;
 fun main() {
 	let x = 5;
 	x = 6;
-	print(String.new(x));
+	print(x -> String);
 }

@@ -59,6 +59,15 @@ class Object(metaclass=_Meta):
 	def cast0(self, type):
 		return self.get_special_method('->')(type)
 
+	@classmethod
+	def class_cast0(cls, type):
+		if type is String:
+			return String(cls.__name__)
+		raise Exception(f'cannot cast uninitialized type {cls.__name__!r} to type {type.__name__!r}')
+
+	def _operator_type_check(self, type):  # =>
+		return Boolean(isinstance(self, type))
+
 	def get_special_method(self, name):
 		# print(name)
 		# print(dir(self))
@@ -167,6 +176,14 @@ class Void(Primitive):
 		from violet.vast import TypeId, Identifier
 		return TypeId(Identifier('Void', -1))
 
+	def _operator_cast(self, type):
+		if type is String:
+			return String("nil")
+		elif type is Boolean:
+			return Boolean(False)
+		else:
+			raise Exception(f"cannot cast {self.__class__.__name__!r} to type {type.__name__!r}")
+
 class Boolean(Primitive):
 	def __bool__(self):
 		return self.value0
@@ -174,10 +191,19 @@ class Boolean(Primitive):
 	def __repr__(self):
 		return repr(self.value0).lower()
 
+	def _operator_cast(self, type):
+		if type is Boolean:
+			return self
+		elif type is String:
+			return String(str(self.value0).lower())
+		else:
+			raise Exception(f"cannot cast {self.__class__.__name__!r} to type {type.__name__!r}")
+
 class String(Primitive):
 	@identify_as_violet()
 	@classmethod
 	def new(cls, value, *, runner=None):
+		print("WARNING: String.new is deprecated in favour of `x->String`")
 		if len(value) > 1:
 			raise Exception("too many arguments for function call (expected 1 argument)")
 		return cls(str(value[0]))

@@ -3,9 +3,15 @@ import { print, typeof } from std;
 fun main() {
 	print("Converting 5 to String");
 	let x = 5 -> String;
-	print(x, " : ", String.new(typeof(x)), "\n");
+	print(x, " : ", typeof(x)->String, "\n");
 
 	print("Converting '99' to Integer");
 	let y = "99" -> Integer;
-	print(String.new(y), " : ", String.new(typeof(y)));
+	print(y->String, " : ", typeof(y)->String);
+
+	print("TYPE CHECKS");
+
+	let z = "hello";
+	print("z is String? ", z => String -> String);
+	print("z is Integer? ", z => Integer -> String);
 }

@@ -302,7 +302,9 @@ class Cast(VioletASTBase):
 	def eval(self, runner):
 		obj = self.expr.eval(runner)
 		typ = self.type.eval(runner)
-		return obj.cast0(typ)
+		if not isinstance(obj, type):
+			return obj.cast0(typ)
+		return obj.class_cast0(typ)
 
 class Control(VioletASTBase):
 	def eval(self, runner, func):
