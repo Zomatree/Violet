@@ -302,9 +302,9 @@ class Cast(VioletASTBase):
 	def eval(self, runner):
 		obj = self.expr.eval(runner)
 		typ = self.type.eval(runner)
-		if not isinstance(obj, type):
-			return obj.cast0(typ)
-		return obj.class_cast0(typ)
+		if isinstance(obj, type):
+			return obj.class_cast0(typ)
+		return obj.cast0(typ)
 
 class Control(VioletASTBase):
 	def eval(self, runner, func):
@@ -471,6 +471,9 @@ class LessThan(Operator):
 class LessOrEqual(Operator):
 	pass
 
+class TypeCheck(Operator):
+	pass
+
 class BiOperatorExpr(VioletASTBase):
 	__slots__ = ('left', 'op', 'right')
 
@@ -514,6 +517,9 @@ class BiOperatorExpr(VioletASTBase):
 
 	def _Range(self, l, r):
 		return l.get_special_method('..')(r)
+
+	def _TypeCheck(self, l, r):
+		return l.get_special_method('=>')(r)
 
 	def eval(self, runner):
 		left = runner.get_var(self.left) if isinstance(self.left, Identifier) else self.left.eval(runner)

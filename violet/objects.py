@@ -18,7 +18,8 @@ _OPS = {
 	'less': '<',
 	'less_equal': '<=',
 	'cast': '->',
-	'range': '..'
+	'range': '..',
+	'type_check': '=>'
 }
 
 class _Meta(type):

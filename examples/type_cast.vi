@@ -7,9 +7,7 @@ fun main() {
 
 	print("Converting '99' to Integer");
 	let y = "99" -> Integer;
-	print(y->String, " : ", typeof(y)->String);
-
-	print("TYPE CHECKS");
+	print(y->String, " : ", typeof(y)->String, "\n");
 
 	let z = "hello";
 	print("z is String? ", z => String -> String);
