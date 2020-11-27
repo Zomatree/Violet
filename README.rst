@@ -12,7 +12,7 @@ Sample "Hello World" example:
 
    fun main(argv: List[String]) {
        print("Hello, world!");
-   };
+   }
 
 Other examples can be found in the ``examples/`` directory.
 
