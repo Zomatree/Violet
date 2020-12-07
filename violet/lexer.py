@@ -5,7 +5,7 @@ class VioletLexer(Lexer):
 	tokens = {
 		CAST,
 
-		LAMBDA_SEP,
+		ANON_CHECK,
 
 		PLUS,
 		MINUS,
@@ -67,7 +67,7 @@ class VioletLexer(Lexer):
 
 	CAST = '->'
 
-	LAMBDA_SEP = r"=>"
+	ANON_CHECK = r"=>"
 
 	PLUS = r'\+'
 	MINUS = r'-'

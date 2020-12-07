@@ -4,7 +4,7 @@ fun main() {
 	let x = nil;
 	let y = "not nil";
 
-	print(String.new(x ?? y));
+	print(x ?? y -> String);
 
-	print(String.new(x ?? x));
+	print(x ?? x -> String);
 }

@@ -20,10 +20,13 @@ class VioletParser(Parser):
 
 	# debugfile = 'parsetab.out'
 	tokens = VioletLexer.tokens
+	expected_shift_reduce = 2
 
 	precedence = (
 		('left', "tern"),
-		('nonassoc', EQ, NE, GT, GE, LT, LE, "lambda", RANGE),
+		('left', "lambda"),
+		('nonassoc', "type_check"),
+		('nonassoc', EQ, NE, GT, GE, LT, LE, RANGE),
 		('left', DQMARK),
 		('left', MODULUS),
 		('left', DIVIDE, MULTIPLY),
@@ -153,6 +156,11 @@ class VioletParser(Parser):
 	@_("expr LE expr")
 	def bool(self, p):
 		return ast.BiOperatorExpr(p.expr0, ast.LessOrEqual(), p.expr1)
+
+	@_("expr ANON_CHECK typ %prec type_check")
+	def bool(self, p):
+		return ast.BiOperatorExpr(p.expr, ast.TypeCheck(), p.typ)
+
 	"""
 	@_("identity ATTR IDENTIFIER")
 	@_("IDENTIFIER")
@@ -345,7 +353,7 @@ class VioletParser(Parser):
 	def expr(self, p):
 		return ast.NilOrElse(p)
 
-	@_("param_list LAMBDA_SEP expr %prec lambda")
+	@_("param_list ANON_CHECK expr %prec lambda")
 	def lambda_expr(self, p):
 		return ast.Lambda(p)	
 

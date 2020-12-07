@@ -2,18 +2,18 @@ import { print } from std;
 
 fun main() {
 	let x = 1 + 2;
-	print("1 + 2 = ", String.new(x));
+	print("1 + 2 = ", x -> String);
 
 	let y = 5 - 2;
-	print("5 - 2 = ", String.new(y));
+	print("5 - 2 = ", y -> String);
 
 	let z = 5 * 2;
-	print("5 * 2 = ", String.new(z));
+	print("5 * 2 = ", z -> String);
 
 	let a: Integer = 10 / 2;
-	print("10 / 2 = ", String.new(a));
+	print("10 / 2 = ", a -> String);
 
 	let b: Integer = 5 % 2;
-	print("5 % 2 = ", String.new(b));
+	print("5 % 2 = ", b -> String);
 	return nil;
 }
